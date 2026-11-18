@@ -92,3 +92,12 @@ struct AppLibraryTests {
         #expect(MixerModel(defaults: defaults).excludedAppIDs.isEmpty)
     }
 }
+
+struct PanelToggleTests {
+    @Test func iconClickRightAfterOutsideCloseDoesNotReopen() {
+        let now = ContinuousClock.now
+        #expect(MixerPanelController.wasJustClosed(at: now - .milliseconds(50), now: now))
+        #expect(!MixerPanelController.wasJustClosed(at: now - .seconds(2), now: now))
+        #expect(!MixerPanelController.wasJustClosed(at: nil, now: now))
+    }
+}

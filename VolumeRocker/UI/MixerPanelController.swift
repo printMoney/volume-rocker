@@ -15,6 +15,8 @@ final class MixerPanelController {
     private let model: MixerModel
     private var panel: MixerPanel?
     private var outsideClickMonitor: Any?
+    /// When the panel was last closed by a click outside it.
+    private var closedByOutsideClickAt: ContinuousClock.Instant?
     private var resizeObserver: (any NSObjectProtocol)?
 
     init(model: MixerModel) {
@@ -28,9 +30,16 @@ final class MixerPanelController {
     func toggle() {
         if isVisible {
             close()
-        } else {
+        } else if !Self.wasJustClosed(at: closedByOutsideClickAt, now: .now) {
             show()
         }
+    }
+
+    /// A click on the menu bar icon can reach the "click outside" handler first (the menu bar belongs to
+    /// another process on recent macOS). That click already closed the panel, so it must not reopen it.
+    nonisolated static func wasJustClosed(at closedAt: ContinuousClock.Instant?, now: ContinuousClock.Instant) -> Bool {
+        guard let closedAt else { return false }
+        return now - closedAt < .milliseconds(300)
     }
 
     /// Builds the panel ahead of time, so even the first click opens it instantly (~25 ms instead of ~125 ms).
@@ -52,9 +61,16 @@ final class MixerPanelController {
         panel.makeKeyAndOrderFront(nil)
         onVisibilityChange?(true)
 
-        // Close when the user clicks into another app or the desktop.
+        // Close when the user clicks into another app or the desktop. A click on the menu bar icon is left to
+        // the icon, which toggles the panel closed.
+        closedByOutsideClickAt = nil
         outsideClickMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
-            MainActor.assumeIsolated { self?.close() }
+            let location = NSEvent.mouseLocation
+            MainActor.assumeIsolated {
+                guard let self, !self.isOnIcon(location) else { return }
+                self.close()
+                self.closedByOutsideClickAt = .now
+            }
         }
     }
 
@@ -66,6 +82,12 @@ final class MixerPanelController {
         }
         outsideClickMonitor = nil
         onVisibilityChange?(false)
+    }
+
+    private func isOnIcon(_ screenPoint: NSPoint) -> Bool {
+        guard let button = anchor?(), let window = button.window else { return false }
+        let frame = window.convertToScreen(button.convert(button.bounds, to: nil))
+        return frame.insetBy(dx: -2, dy: -2).contains(screenPoint)
     }
 
     private func makePanel() -> MixerPanel {

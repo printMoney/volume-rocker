@@ -5,6 +5,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Fixed
+
+- Clicking the menu bar icon while the mixer was open reopened it instead of closing it.
+- With many apps, the app list ran off the screen. It now scrolls, and the device controls and buttons stay visible.
+
 ## [0.1.0] - 2026-11-18
 
 The first public release.

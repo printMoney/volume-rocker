@@ -9,6 +9,8 @@ struct MixerPanelView: View {
     @Environment(\.openSettings) private var openSettings
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isSavingProfile = false
+    /// Natural height of the app list, measured so the list only scrolls when it doesn't fit.
+    @State private var appListHeight: CGFloat = 0
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -67,12 +69,27 @@ struct MixerPanelView: View {
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.vertical, 12)
             } else {
-                ForEach(apps) { item in
-                    AppRowView(item: item, model: model)
-                        .transition(.opacity.combined(with: .move(edge: .top)))
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 10) {
+                        ForEach(apps) { item in
+                            AppRowView(item: item, model: model)
+                                .transition(.opacity.combined(with: .move(edge: .top)))
+                        }
+                    }
+                    .onGeometryChange(for: CGFloat.self, of: \.size.height) { appListHeight = $0 }
                 }
+                .scrollBounceBehavior(.basedOnSize)
+                .scrollIndicators(.automatic)
+                .frame(height: min(max(appListHeight, 1), Self.maxAppListHeight))
             }
         }
+    }
+
+    /// The app list grows with its content up to this height, then scrolls, so the panel always fits on screen
+    /// with its device controls and buttons visible.
+    static var maxAppListHeight: CGFloat {
+        let screenHeight = NSScreen.main?.visibleFrame.height ?? 800
+        return min(460, max(180, screenHeight - 380))
     }
 
     private var profilesMenu: some View {
