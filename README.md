@@ -70,8 +70,18 @@ Turn down a noisy browser tab without touching your music. Boost a quiet podcast
 ### Homebrew
 
 ```bash
-brew install --cask printmoney/tap/volume-rocker
+brew tap printmoney/tap
 ```
+
+```bash
+brew trust printmoney/tap
+```
+
+```bash
+brew install --cask volume-rocker
+```
+
+Homebrew asks you to trust a third-party tap once. Update later with `brew upgrade --cask volume-rocker`.
 
 ### "Apple could not verify…" (unsigned builds)
 

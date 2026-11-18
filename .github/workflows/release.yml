@@ -25,6 +25,7 @@ jobs:
       NOTARY_KEY_ID: ${{ secrets.NOTARY_KEY_ID }}
       NOTARY_ISSUER_ID: ${{ secrets.NOTARY_ISSUER_ID }}
       SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+      HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
     steps:
       - uses: actions/checkout@v7
 
@@ -100,6 +101,18 @@ jobs:
             --title "Volume Rocker $VERSION" \
             --notes-file "$RUNNER_TEMP/notes.md" \
             --verify-tag
+
+      - name: Update Homebrew tap
+        if: env.HOMEBREW_TAP_TOKEN != '' && env.VERSION != '0.0.0'
+        run: |
+          SHA=$(shasum -a 256 "$DMG" | cut -d' ' -f1)
+          git clone --depth 1 "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/${GITHUB_REPOSITORY_OWNER}/homebrew-tap.git" "$RUNNER_TEMP/tap"
+          cd "$RUNNER_TEMP/tap"
+          sed -i '' -E "s/^  version \".*\"/  version \"$VERSION\"/; s/^  sha256 \".*\"/  sha256 \"$SHA\"/" Casks/volume-rocker.rb
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "volume-rocker $VERSION"
+          git push origin HEAD
 
       - name: Update Sparkle appcast
         if: env.SPARKLE_PRIVATE_KEY != ''

@@ -19,7 +19,9 @@
 
    Any step whose secrets are missing is skipped cleanly, and the release still succeeds as an unsigned build.
 
-4. Update the Homebrew cask (`Packaging/homebrew/volume-rocker.rb` → your `homebrew-tap` repo) with the new version and SHA-256.
+   - updates the Homebrew cask in [printMoney/homebrew-tap](https://github.com/printMoney/homebrew-tap) to the new version and checksum *(if the tap token is set)*.
+
+4. Without the tap token, update `Casks/volume-rocker.rb` in the tap repo by hand: the new `version` and the `sha256` from the release notes.
 
 ## GitHub Secrets
 
@@ -53,6 +55,12 @@ Updates are signed with an EdDSA key pair. You create it **once**, on your Mac:
 | Secret | What it is |
 | --- | --- |
 | `SPARKLE_PRIVATE_KEY` | The exported EdDSA private key that signs updates. **Back it up in your password manager.** If you lose it, existing users can't receive updates any more. |
+
+### Homebrew tap
+
+| Secret | What it is | How to get it |
+| --- | --- | --- |
+| `HOMEBREW_TAP_TOKEN` | Lets the release workflow update the cask in `printMoney/homebrew-tap` | GitHub → your avatar → **Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token**. Repository access: **Only select repositories → homebrew-tap**. Permissions: **Contents → Read and write**. Copy the token and add it as this secret in the *volume-rocker* repository. |
 
 Also turn on **GitHub Pages** (Settings → Pages → deploy from branch `gh-pages`, root) so the appcast is served at `https://printmoney.github.io/volume-rocker/appcast.xml`.
 
