@@ -5,63 +5,50 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
-### Fixed
+## [0.1.0] - 2026-11-18
 
-- Opening the mixer from a keyboard shortcut or the Control Center control did nothing on macOS 27.
-- The panel used up to 26% CPU while open; it now uses about 2% (see docs/PERFORMANCE.md).
-- `Scripts/build.sh` failed when the app was running from `dist/`.
-- A harmless Core Audio error was logged whenever an app quit.
-- Level meters kept redrawing while the panel was closed, using about 20% CPU while audio played.
-- `Scripts/build.sh` could report success after a failed build.
-- Distorted audio on Bluetooth headphones and other devices that don't run at 48 kHz. Sample-rate conversion now uses the best quality.
+The first public release.
 
 ### Added
 
-- **Scroll on the menu bar icon** to change the output volume; **Option-click or right-click** it for a quick menu of output and input devices and profiles.
-- **Global keyboard shortcuts** (Settings → Shortcuts): open the mixer, mute, volume up/down, next profile, and one per profile.
-- **Shortcuts and Siri actions:** Set App Volume, Mute App, Switch Output Device, Set Output Volume, Apply Profile.
-- **Control Center controls** (macOS 26): Mute Sound, Next Volume Profile, Open Volume Rocker.
-- **Open at login** (Settings → General and onboarding).
-- **Automatic updates** with Sparkle 2, EdDSA-signed (Settings → Updates; active once a signing key is configured).
-- Settings → **Apps**: default volume for new apps and **excluded apps** that Volume Rocker never touches.
-- Settings now has General, Apps, Devices, Shortcuts, Profiles, Updates and About tabs.
+**Mixer**
+- Per-app volume and mute, using Core Audio process taps. No audio driver or system extension needed.
+- Live detection of apps playing sound, with helper processes grouped under their app (for example Chrome's and Safari's).
+- Live level meters for each app.
+- Volume boost up to 200% per app (Settings → General), with a built-in limiter so boosted audio never clips.
+- 10-band equalizer per app with presets: Bass Boost, Bass Reducer, Treble Boost, Vocal, Spoken Word, Loudness, Rock, Electronic, Classical and Late Night.
+- Per-app output routing: play any app on a specific device, for example calls on the headset and music on the speakers.
+- Profiles: save the current mix as "Work", "Gaming", "Movie" and so on, and switch with one click or a keyboard shortcut.
+- Every app's volume, mute, EQ and routing are remembered across restarts, optionally per output device.
+- "Show Recent Apps" to also list apps that are quiet right now; right-click an app for more options.
 
-### Changed
+**Devices**
+- One-click switching of the output device (built-in, Bluetooth and AirPods, HDMI, DisplayPort, USB, AirPlay) and the input device, with input volume.
+- Output volume and mute in sync with the keyboard volume keys; the menu bar icon shows the current level.
+- Handles devices connecting and disconnecting, sleep and wake, sample-rate changes and Core Audio restarts without leaving audio silent.
+- High-quality sample-rate conversion for devices that don't run at 48 kHz, such as many Bluetooth headphones.
 
-- The menu bar icon and panel are now AppKit (`NSStatusItem` + panel with Liquid Glass on macOS 26) instead of SwiftUI's `MenuBarExtra`, which apps can't open programmatically.
-- The panel is built in the background after launch, so it opens in about 25 ms.
-- VoiceOver now moves into the panel when it opens, and announces whether each app is playing.
-- All user-facing strings are in String Catalogs, including the permission prompt and the Control Center controls.
-- README with real screenshots, a usage table and an expanded FAQ; new performance report.
-- Ad-hoc signed builds no longer use the hardened runtime, so they can load the embedded frameworks. Developer ID releases still use it.
-- **Volume boost up to 200%** per app (turn on in Settings → General), with a built-in limiter so boosted audio never clips.
-- **10-band equalizer per app** with presets (Bass Boost, Vocal, Spoken Word, Loudness, Rock, Electronic, Classical, Late Night and more).
-- **Per-app output routing:** play any app on a specific device, e.g. calls on the headset and music on the speakers.
-- **Profiles:** save the current mix as "Work", "Gaming", "Movie" and so on, and switch from the panel. Manage them in Settings → Profiles.
-- Right-click an app for Mute, Equalizer, Output Device and Reset.
-- **One-click output device switching** in the panel (built-in, Bluetooth/AirPods, HDMI, DisplayPort, USB, AirPlay), with device icons like Control Center.
-- **Input device switching and input volume**, which can be hidden in Settings → Devices. Changing the input volume never records audio.
-- **Remember app volumes for each output device** (optional, Settings → Devices).
-- New **Devices** tab in Settings.
-- Taps are released during sleep and rebuilt after wake; rebuilt when a device's sample rate changes; and everything restarts cleanly if the Core Audio system service restarts.
-- Apps whose output device disconnects fall back to the default output.
-- **Per-app volume and mute** using Core Audio process taps and private aggregate devices, with no virtual audio driver.
-- Live detection of apps playing audio, with helper processes grouped under their app (e.g. Chrome and Safari helpers).
-- Smooth, click-free gain changes (per-buffer linear ramps with vDSP) on a real-time-safe audio path.
-- Live per-app level meters.
-- Output volume and mute for the current output device, kept in sync with the volume keys.
-- Menu bar icon that reflects the output volume and mute state.
-- Per-app volume and mute remembered by bundle ID across restarts.
-- "Show Recent Apps" option to also list apps that are quiet right now.
-- First-launch onboarding that explains and requests the System Audio Recording permission.
-- Permission status in Settings → General.
-- Project foundation: XcodeGen project (Swift 6, strict concurrency, Apple Silicon only, macOS 15+).
-- Empty menu bar app with a mixer panel placeholder and a native Settings window (General, About).
-- Unit tests with Swift Testing.
-- SwiftLint and SwiftFormat configuration.
-- GitHub Actions for CI and releases (signing and notarization skip cleanly without secrets).
-- Release scripts: build, sign, DMG, notarize.
-- Documentation: README, architecture, releasing guide, contributing guide, code of conduct, security policy.
-- Placeholder app icon.
+**Integration**
+- Scroll on the menu bar icon to change the volume; Option-click or right-click it for devices and profiles.
+- Global keyboard shortcuts: open the mixer, mute, volume up and down, next profile, and one per profile.
+- Shortcuts and Siri actions: Set App Volume, Mute App, Switch Output Device, Set Output Volume, Apply Profile.
+- Control Center controls on macOS 26: Mute Sound, Next Volume Profile, Open Volume Rocker.
+- Open at login, a first-launch welcome that explains the permission, and a native Settings window (General, Apps, Devices, Shortcuts, Profiles, Updates, About).
+- Excluded apps that Volume Rocker never touches, and a default volume for new apps.
+- Automatic updates with Sparkle, EdDSA-signed (switched on once the update key is configured).
 
-[Unreleased]: https://github.com/printMoney/volume-rocker/commits/main
+**Quality**
+- About 0.3% CPU at idle, 1.4% while processing audio and 32 MB of memory, measured with Instruments ([details](https://github.com/printMoney/volume-rocker/blob/main/docs/PERFORMANCE.md)).
+- Real-time-safe audio path: no allocations, locks or logging on the audio thread; smooth, click-free volume changes.
+- VoiceOver and keyboard support; respects Reduce Motion and Reduce Transparency; Liquid Glass on macOS 26.
+- All user-facing text in String Catalogs, ready for translation.
+
+### Known limitations
+
+- This build is not signed with an Apple Developer ID. See the README for how to open it the first time.
+- Automatic updates are not active in this version yet.
+- When an app resumes after being paused for more than 30 seconds, its first few milliseconds may play at its original volume.
+- To choose a specific AirPlay speaker, use Control Center.
+
+[Unreleased]: https://github.com/printMoney/volume-rocker/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/printMoney/volume-rocker/releases/tag/v0.1.0
