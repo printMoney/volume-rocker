@@ -1,0 +1,39 @@
+included:
+  - VolumeRocker
+  - VolumeRockerTests
+excluded:
+  - build
+  - DerivedData
+
+opt_in_rules:
+  - closure_spacing
+  - contains_over_first_not_nil
+  - empty_count
+  - explicit_init
+  - first_where
+  - modifier_order
+  - redundant_nil_coalescing
+  - sorted_first_last
+  - toggle_bool
+  - vertical_whitespace_closing_braces
+
+disabled_rules:
+  - todo
+
+line_length:
+  warning: 140
+  error: 200
+  ignores_comments: true
+  ignores_urls: true
+
+identifier_name:
+  min_length: 2
+  excluded: [x, y, i, db, id]
+
+type_body_length:
+  warning: 400
+file_length:
+  warning: 600
+
+analyzer_rules:
+  - unused_import

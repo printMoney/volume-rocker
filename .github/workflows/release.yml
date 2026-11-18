@@ -1,0 +1,129 @@
+name: Release
+
+# Runs when you push a version tag, e.g.: git tag v0.1.0 && git push origin v0.1.0
+# Signing, notarization and the Sparkle appcast are each skipped cleanly when their secrets are missing,
+# so the workflow also works before you have a paid Apple Developer account. See docs/RELEASING.md.
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  SPARKLE_VERSION: "2.6.4"
+
+jobs:
+  release:
+    runs-on: macos-26
+    env:
+      MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
+      MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+      DEVELOPER_ID: ${{ secrets.DEVELOPER_ID }}
+      NOTARY_KEY_P8: ${{ secrets.NOTARY_KEY_P8 }}
+      NOTARY_KEY_ID: ${{ secrets.NOTARY_KEY_ID }}
+      NOTARY_ISSUER_ID: ${{ secrets.NOTARY_ISSUER_ID }}
+      SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s "$(ls -d /Applications/Xcode*.app | sort -V | tail -1)/Contents/Developer"
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Set version from tag
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || VERSION="0.0.0"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          sed -i '' "s/MARKETING_VERSION: .*/MARKETING_VERSION: $VERSION/" project.yml
+          sed -i '' "s/CURRENT_PROJECT_VERSION: .*/CURRENT_PROJECT_VERSION: $GITHUB_RUN_NUMBER/" project.yml
+
+      - name: Build
+        run: Scripts/build.sh
+
+      - name: Import Developer ID certificate
+        if: env.MACOS_CERTIFICATE_P12 != '' && env.DEVELOPER_ID != ''
+        run: |
+          KEYCHAIN="$RUNNER_TEMP/build.keychain-db"
+          KEYCHAIN_PASSWORD="$(openssl rand -hex 16)"
+          echo "$MACOS_CERTIFICATE_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security import "$RUNNER_TEMP/cert.p12" -P "$MACOS_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN"
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
+          rm "$RUNNER_TEMP/cert.p12"
+
+      - name: Sign app
+        run: |
+          if [[ -z "$MACOS_CERTIFICATE_P12" ]]; then unset DEVELOPER_ID; fi
+          Scripts/sign.sh
+
+      - name: Create DMG
+        run: |
+          if [[ -z "$MACOS_CERTIFICATE_P12" ]]; then unset DEVELOPER_ID; fi
+          DMG=$(Scripts/make-dmg.sh | tail -1)
+          echo "DMG=$DMG" >> "$GITHUB_ENV"
+
+      - name: Notarize & staple
+        if: env.MACOS_CERTIFICATE_P12 != '' && env.NOTARY_KEY_P8 != ''
+        run: |
+          echo "$NOTARY_KEY_P8" | base64 --decode > "$RUNNER_TEMP/AuthKey.p8"
+          NOTARY_KEY_PATH="$RUNNER_TEMP/AuthKey.p8" Scripts/notarize.sh "$DMG"
+          rm "$RUNNER_TEMP/AuthKey.p8"
+
+      - name: Write release notes
+        run: |
+          {
+            # Pull this version's section out of CHANGELOG.md
+            awk -v v="$VERSION" '$0 ~ "^## \\[" v "\\]" {f=1; next} /^## \[/ {f=0} f' CHANGELOG.md
+            echo
+            echo "**SHA-256:** \`$(shasum -a 256 "$DMG" | cut -d' ' -f1)\`"
+            if [[ -z "$MACOS_CERTIFICATE_P12" ]]; then
+              echo
+              echo "> [!NOTE]"
+              echo "> This build is not notarized by Apple. On first launch, right-click the app and choose **Open**,"
+              echo "> or allow it in **System Settings → Privacy & Security**. See the README for details."
+            fi
+          } > "$RUNNER_TEMP/notes.md"
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" "$DMG" \
+            --title "Volume Rocker $VERSION" \
+            --notes-file "$RUNNER_TEMP/notes.md" \
+            --verify-tag
+
+      - name: Update Sparkle appcast
+        if: env.SPARKLE_PRIVATE_KEY != ''
+        run: |
+          curl -sSL "https://github.com/sparkle-project/Sparkle/releases/download/$SPARKLE_VERSION/Sparkle-$SPARKLE_VERSION.tar.xz" \
+            | tar -xJ -C "$RUNNER_TEMP" ./bin
+          git fetch origin gh-pages || true
+          git worktree add "$RUNNER_TEMP/pages" gh-pages 2>/dev/null \
+            || { git worktree add --orphan -b gh-pages "$RUNNER_TEMP/pages"; }
+          mkdir -p "$RUNNER_TEMP/updates"
+          cp "$DMG" "$RUNNER_TEMP/updates/"
+          [[ -f "$RUNNER_TEMP/pages/appcast.xml" ]] && cp "$RUNNER_TEMP/pages/appcast.xml" "$RUNNER_TEMP/updates/"
+          echo "$SPARKLE_PRIVATE_KEY" | "$RUNNER_TEMP/bin/generate_appcast" \
+            --ed-key-file - \
+            --download-url-prefix "https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/" \
+            "$RUNNER_TEMP/updates"
+          cp "$RUNNER_TEMP/updates/appcast.xml" "$RUNNER_TEMP/pages/appcast.xml"
+          cd "$RUNNER_TEMP/pages"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add appcast.xml
+          git commit -m "Update appcast for $GITHUB_REF_NAME"
+          git push origin gh-pages
+
+      - name: Clean up keychain
+        if: always()
+        run: security delete-keychain "$RUNNER_TEMP/build.keychain-db" 2>/dev/null || true
