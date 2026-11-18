@@ -5,6 +5,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-18
+
 ### Fixed
 
 - The mixer window didn't grow with its content, so the top and bottom were cut off (including the Settings and Quit buttons). It now always fits its content and resizes live.
@@ -56,5 +58,6 @@ The first public release.
 - When an app resumes after being paused for more than 30 seconds, its first few milliseconds may play at its original volume.
 - To choose a specific AirPlay speaker, use Control Center.
 
-[Unreleased]: https://github.com/printMoney/volume-rocker/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/printMoney/volume-rocker/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/printMoney/volume-rocker/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/printMoney/volume-rocker/releases/tag/v0.1.0
