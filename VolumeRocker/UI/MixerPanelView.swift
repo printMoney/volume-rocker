@@ -5,6 +5,8 @@ struct MixerPanelView: View {
     let model: MixerModel
     /// Closes the panel (before opening Settings, for example).
     var onRequestClose: () -> Void = {}
+    /// Reports the content's natural size, so the panel window can grow and shrink to fit it.
+    var onSizeChange: (CGSize) -> Void = { _ in }
 
     @Environment(\.openSettings) private var openSettings
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -48,6 +50,8 @@ struct MixerPanelView: View {
         }
         .padding(14)
         .frame(width: 340)
+        .fixedSize(horizontal: false, vertical: true)
+        .onGeometryChange(for: CGSize.self, of: \.size) { onSizeChange($0) }
         .trackingWindowVisibility()
         .animation(reduceMotion ? nil : .spring(duration: 0.35, bounce: 0.1), value: model.visibleApps.map(\.id))
         .animation(reduceMotion ? nil : .default, value: model.canControlApps)

@@ -7,6 +7,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- The mixer window didn't grow with its content, so the top and bottom were cut off (including the Settings and Quit buttons). It now always fits its content and resizes live.
 - Clicking the menu bar icon while the mixer was open reopened it instead of closing it.
 - With many apps, the app list ran off the screen. It now scrolls, and the device controls and buttons stay visible.
 

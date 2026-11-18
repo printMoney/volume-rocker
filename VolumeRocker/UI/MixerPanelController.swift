@@ -17,6 +17,8 @@ final class MixerPanelController {
     private var outsideClickMonitor: Any?
     /// When the panel was last closed by a click outside it.
     private var closedByOutsideClickAt: ContinuousClock.Instant?
+    /// The content's latest natural size. It can be reported before the panel exists, so it is kept.
+    private var contentSize: CGSize?
     private var resizeObserver: (any NSObjectProtocol)?
 
     init(model: MixerModel) {
@@ -46,13 +48,16 @@ final class MixerPanelController {
     func prepare() {
         guard panel == nil else { return }
         let panel = makePanel()
-        panel.contentView?.layoutSubtreeIfNeeded()
         self.panel = panel
+        panel.contentView?.layoutSubtreeIfNeeded()
+        applyContentSize()
     }
 
     func show() {
         let panel = panel ?? makePanel()
         self.panel = panel
+        panel.contentView?.layoutSubtreeIfNeeded()
+        applyContentSize()
         position(panel)
         // VoiceOver only moves into windows of the frontmost app, so bring the app forward for VoiceOver users.
         if NSWorkspace.shared.isVoiceOverEnabled {
@@ -84,6 +89,20 @@ final class MixerPanelController {
         onVisibilityChange?(false)
     }
 
+    /// Resizes the window to the content's natural size, keeping it anchored under the menu bar icon.
+    private func fit(to size: CGSize) {
+        contentSize = size
+        applyContentSize()
+    }
+
+    private func applyContentSize() {
+        guard let panel, let size = contentSize, size.width > 0, size.height > 0 else { return }
+        let newSize = NSSize(width: ceil(size.width), height: ceil(size.height))
+        guard panel.frame.size != newSize else { return }
+        panel.setContentSize(newSize)
+        position(panel)
+    }
+
     private func isOnIcon(_ screenPoint: NSPoint) -> Bool {
         guard let button = anchor?(), let window = button.window else { return false }
         let frame = window.convertToScreen(button.convert(button.bounds, to: nil))
@@ -91,9 +110,13 @@ final class MixerPanelController {
     }
 
     private func makePanel() -> MixerPanel {
-        let content = MixerPanelView(model: model, onRequestClose: { [weak self] in self?.close() })
+        let content = MixerPanelView(
+            model: model,
+            onRequestClose: { [weak self] in self?.close() },
+            onSizeChange: { [weak self] size in self?.fit(to: size) }
+        )
         let hosting = NSHostingView(rootView: content)
-        hosting.sizingOptions = [.preferredContentSize]
+        hosting.sizingOptions = []
 
         let panel = MixerPanel(
             contentRect: NSRect(x: 0, y: 0, width: 340, height: 300),
@@ -132,6 +155,7 @@ final class MixerPanelController {
         if #available(macOS 26.0, *) {
             let glass = NSGlassEffectView()
             glass.cornerRadius = cornerRadius
+            content.autoresizingMask = [.width, .height]
             glass.contentView = content
             return glass
         }
