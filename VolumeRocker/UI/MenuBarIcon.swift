@@ -18,7 +18,7 @@ enum VolumeSymbol {
 
 /// The menu bar icon, reflecting the current output volume and mute state.
 struct MenuBarIcon: View {
-    let output: OutputDeviceController
+    let output: DefaultDeviceController
 
     var body: some View {
         Image(systemName: VolumeSymbol.name(volume: output.volume, isMuted: output.isMuted))

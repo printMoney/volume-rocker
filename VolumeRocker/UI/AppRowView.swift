@@ -29,7 +29,7 @@ struct AppRowView: View {
                 HStack(spacing: 8) {
                     MuteButton(
                         isMuted: item.isMuted,
-                        volume: item.volume,
+                        symbol: VolumeSymbol.name(volume: item.volume, isMuted: item.isMuted),
                         label: Text(item.name),
                         action: { model.toggleMute(item) }
                     )

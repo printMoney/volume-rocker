@@ -28,14 +28,29 @@ final class AppVolumeStore {
         }
     }
 
-    func setting(for appID: String) -> AppVolumeSetting {
-        settings[appID] ?? .default
+    /// The saved setting for an app. With a `deviceUID` (per-device memory turned on), the device-specific
+    /// setting wins; if there is none yet, the app's general setting is used as the starting point.
+    func setting(for appID: String, deviceUID: String? = nil) -> AppVolumeSetting {
+        if let deviceUID, let deviceSetting = settings[Self.key(appID: appID, deviceUID: deviceUID)] {
+            return deviceSetting
+        }
+        return settings[appID] ?? .default
     }
 
-    func set(_ setting: AppVolumeSetting, for appID: String) {
-        // Apps left at the default don't need an entry.
-        settings[appID] = setting == .default ? nil : setting
+    func set(_ setting: AppVolumeSetting, for appID: String, deviceUID: String? = nil) {
+        if let deviceUID {
+            // Stored even when it equals the default, because it must override the app's general setting.
+            settings[Self.key(appID: appID, deviceUID: deviceUID)] = setting
+        } else {
+            // Apps left at the default don't need an entry.
+            settings[appID] = setting == .default ? nil : setting
+        }
         scheduleSave()
+    }
+
+    /// Key for a device-specific setting. "|" keeps keys readable in the preferences file.
+    nonisolated static func key(appID: String, deviceUID: String) -> String {
+        "\(deviceUID)|\(appID)"
     }
 
     /// Writes pending changes immediately (also called when the app quits).

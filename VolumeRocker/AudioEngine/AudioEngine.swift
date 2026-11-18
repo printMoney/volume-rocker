@@ -9,6 +9,8 @@ struct TapRequest: Sendable, Equatable {
     let outputDeviceID: AudioDeviceID
     let outputDeviceUID: String
     let renderState: TapRenderState
+    /// Bumped to force a rebuild with otherwise identical settings, e.g. after wake or a sample-rate change.
+    var generation = 0
 
     static func == (lhs: TapRequest, rhs: TapRequest) -> Bool {
         lhs.key == rhs.key
@@ -16,6 +18,7 @@ struct TapRequest: Sendable, Equatable {
             && lhs.outputDeviceID == rhs.outputDeviceID
             && lhs.outputDeviceUID == rhs.outputDeviceUID
             && lhs.renderState === rhs.renderState
+            && lhs.generation == rhs.generation
     }
 }
 

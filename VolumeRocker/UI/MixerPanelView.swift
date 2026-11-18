@@ -9,7 +9,19 @@ struct MixerPanelView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            OutputVolumeView(output: model.output)
+            DeviceSectionView(
+                controller: model.output,
+                devices: model.devices.outputs,
+                onSelect: { model.select($0, for: .output) }
+            )
+
+            if model.showInputControls, model.input.isAvailable {
+                DeviceSectionView(
+                    controller: model.input,
+                    devices: model.devices.inputs,
+                    onSelect: { model.select($0, for: .input) }
+                )
+            }
 
             if !model.canControlApps {
                 PermissionBanner(model: model)
@@ -88,55 +100,16 @@ struct MixerPanelView: View {
     }
 }
 
-/// Output device name plus the master volume slider and mute button.
-struct OutputVolumeView: View {
-    let output: OutputDeviceController
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(output.deviceName.isEmpty ? String(localized: "No Output Device") : output.deviceName)
-                .font(.headline)
-                .lineLimit(1)
-                .accessibilityAddTraits(.isHeader)
-
-            HStack(spacing: 8) {
-                MuteButton(
-                    isMuted: output.isMuted,
-                    volume: output.volume,
-                    label: Text("Output"),
-                    action: { output.setMuted(!output.isMuted) }
-                )
-                .disabled(!output.hasMuteControl)
-
-                Slider(
-                    value: Binding(get: { Double(output.volume) }, set: { output.setVolume(Float($0)) }),
-                    in: 0 ... 1
-                ) {
-                    Text("Output Volume")
-                }
-                .labelsHidden()
-                .accessibilityValue(Text(output.volume, format: .percent.precision(.fractionLength(0))))
-                .disabled(!output.hasVolumeControl)
-            }
-            if !output.hasVolumeControl, !output.deviceName.isEmpty {
-                Text("This device’s volume can’t be changed from the Mac.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-        }
-    }
-}
-
-/// Speaker button that toggles mute. Its icon follows the volume level.
+/// Button that toggles mute. Its icon follows the volume level.
 struct MuteButton: View {
     let isMuted: Bool
-    let volume: Float
+    let symbol: String
     let label: Text
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: VolumeSymbol.name(volume: volume, isMuted: isMuted))
+            Image(systemName: symbol)
                 .frame(width: 18, alignment: .leading)
                 .contentTransition(.symbolEffect(.replace))
         }

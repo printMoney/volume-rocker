@@ -79,8 +79,13 @@ Volume changes don't go through the engine at all. The slider writes the new gai
 
 ## Lifecycle and robustness
 
-- **Device changes:** when an app moves to another output device, or the default output device changes, its tap request changes and the engine rebuilds that app's aggregate device. (Device disconnects and sample-rate changes get dedicated handling in Phase 2.)
-- **Sleep/wake:** the engine is paused on `NSWorkspace.willSleepNotification` and rebuilt on wake.
+- **Device switching:** choosing a device in the panel sets the system default (`kAudioHardwarePropertyDefaultOutputDevice`/`…InputDevice`), exactly like Control Center. If alerts were following the default output, they move too.
+- **Device changes:** when an app moves to another output device, or the default output device changes, its tap request changes and the engine rebuilds that app's aggregate device. Each request uses the app's device only if it's still in the device list and is a real output device. Otherwise (disconnected, or an automatic voice-processing aggregate) it falls back to the default output.
+- **Device list:** `AudioDeviceList` watches `kAudioHardwarePropertyDevices` and hides hidden devices, our own private aggregates and devices that can't be the default.
+- **Sample-rate changes:** `AudioDeviceList` watches each output device's nominal sample rate. When one changes, the taps on that device are rebuilt by bumping a per-device *generation* number in their `TapRequest`s.
+- **Sleep/wake:** on `NSWorkspace.willSleepNotification` every tap is released, so apps play normally and devices can sleep. Two seconds after wake (so Bluetooth can reconnect), the global generation is bumped and all taps are rebuilt.
+- **Core Audio restarts:** if `coreaudiod` restarts (`kAudioHardwarePropertyServiceRestarted`), every object ID is stale, so all monitors, controllers and taps start over.
+- **Per-device memory (optional):** with "Remember app volumes for each output device" on, settings are stored as `"<device UID>|<bundle ID>"`. A new device starts from the app's general setting.
 - **Crash safety:** private aggregate devices and taps belong to the Volume Rocker process. If it crashes or quits, macOS removes them and the apps play normally again, so audio is never left silent.
 
 ## Permissions

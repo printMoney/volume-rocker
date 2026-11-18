@@ -32,12 +32,14 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started
 
 Notes: each app gets its own private aggregate device (see docs/ARCHITECTURE.md for why). Known limitation: when a paused app resumes after more than 30 seconds, its first few milliseconds play at the original volume while the tap starts.
 
-## Phase 2: Devices ⬜
+## Phase 2: Devices ✅
 
-- ⬜ One-click output device switching (built-in, Bluetooth, HDMI/DisplayPort, USB, AirPlay)
-- ⬜ Input device switching and input volume
-- ⬜ Survive device connect and disconnect, sleep and wake, and sample-rate changes
-- ⬜ Optional per-device memory of app volumes
+- ✅ One-click output device switching (built-in, Bluetooth, HDMI/DisplayPort, USB, AirPlay)
+- ✅ Input device switching and input volume
+- ✅ Survive device connect and disconnect, sleep and wake, and sample-rate changes
+- ✅ Optional per-device memory of app volumes
+
+Notes: AirPlay receivers appear through macOS's single "AirPlay" device; choosing a specific receiver still happens in Control Center.
 
 ## Phase 3: Power features ⬜
 

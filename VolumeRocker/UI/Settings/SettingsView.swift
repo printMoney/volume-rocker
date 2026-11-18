@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The native Settings window. More tabs (Apps, Devices, Shortcuts, Updates) arrive in Phase 4.
+/// The native Settings window. More tabs (Apps, Shortcuts, Updates) arrive in Phase 4.
 struct SettingsView: View {
     let model: MixerModel
 
@@ -8,6 +8,9 @@ struct SettingsView: View {
         TabView {
             Tab("General", systemImage: "gearshape") {
                 GeneralSettingsView(model: model)
+            }
+            Tab("Devices", systemImage: "hifispeaker.2") {
+                DeviceSettingsView(model: model)
             }
             Tab("About", systemImage: "info.circle") {
                 AboutSettingsView()
@@ -50,6 +53,40 @@ private struct GeneralSettingsView: View {
                         }
                     }
                 }
+            }
+        }
+        .formStyle(.grouped)
+    }
+}
+
+private struct DeviceSettingsView: View {
+    let model: MixerModel
+
+    var body: some View {
+        Form {
+            Section {
+                Toggle("Remember app volumes for each output device", isOn: Binding(
+                    get: { model.rememberVolumesPerDevice },
+                    set: { model.rememberVolumesPerDevice = $0 }
+                ))
+            } footer: {
+                Text("""
+                For example, keep music quieter on your speakers than on your headphones. \
+                Volumes switch automatically with the output device.
+                """)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+
+            Section {
+                Toggle("Show input device in the mixer", isOn: Binding(
+                    get: { model.showInputControls },
+                    set: { model.showInputControls = $0 }
+                ))
+            } footer: {
+                Text("Switch the microphone and change its input volume from the menu bar. This does not record audio.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)

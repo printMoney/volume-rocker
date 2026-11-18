@@ -7,6 +7,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **One-click output device switching** in the panel (built-in, Bluetooth/AirPods, HDMI, DisplayPort, USB, AirPlay), with device icons like Control Center.
+- **Input device switching and input volume**, which can be hidden in Settings → Devices. Changing the input volume never records audio.
+- **Remember app volumes for each output device** (optional, Settings → Devices).
+- New **Devices** tab in Settings.
+- Taps are released during sleep and rebuilt after wake; rebuilt when a device's sample rate changes; and everything restarts cleanly if the Core Audio system service restarts.
+- Apps whose output device disconnects fall back to the default output.
 - **Per-app volume and mute** using Core Audio process taps and private aggregate devices, with no virtual audio driver.
 - Live detection of apps playing audio, with helper processes grouped under their app (e.g. Chrome and Safari helpers).
 - Smooth, click-free gain changes (per-buffer linear ramps with vDSP) on a real-time-safe audio path.

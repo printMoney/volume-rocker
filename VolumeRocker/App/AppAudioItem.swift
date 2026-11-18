@@ -19,6 +19,8 @@ final class AppAudioItem: Identifiable {
 
     @ObservationIgnored var processObjectIDs: [AudioObjectID] = []
     @ObservationIgnored var outputDeviceID: AudioDeviceID?
+    /// The output device whose saved settings are applied, when per-device memory is on.
+    @ObservationIgnored var settingsDeviceUID: String?
 
     let renderState: TapRenderState
     let meter: LevelMeter

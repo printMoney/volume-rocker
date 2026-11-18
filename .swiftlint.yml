@@ -33,6 +33,9 @@ identifier_name:
 trailing_comma:
   mandatory_comma: true
 
+cyclomatic_complexity:
+  ignores_case_statements: true
+
 type_body_length:
   warning: 400
 file_length:
