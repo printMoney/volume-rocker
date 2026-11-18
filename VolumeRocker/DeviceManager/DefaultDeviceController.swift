@@ -75,6 +75,17 @@ final class DefaultDeviceController {
         }
     }
 
+    #if DEBUG
+        /// Fills in example values for rendering screenshots (Scripts/render-readme-images.sh).
+        func setPreview(deviceName: String, volume: Float) {
+            self.deviceName = deviceName
+            self.volume = volume
+            deviceID = 1
+            hasVolumeControl = true
+            hasMuteControl = true
+        }
+    #endif
+
     private func reloadDevice() {
         let newID = (try? AudioObjectID.system.read(
             AudioObjectPropertyAddress(direction.defaultDeviceSelector), default: AudioDeviceID.unknown

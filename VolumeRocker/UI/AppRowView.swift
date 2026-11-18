@@ -52,6 +52,7 @@ struct AppRowView: View {
         .contextMenu { contextMenu }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(Text(item.name))
+        .accessibilityValue(item.isPlaying ? Text("Playing") : Text("Quiet"))
     }
 
     private var header: some View {
@@ -129,30 +130,6 @@ struct AppRowView: View {
         Menu("Output Device") { routingMenu }
         Divider()
         Button("Reset to 100%, No EQ") { model.reset(item) }
-    }
-}
-
-/// A thin live level bar. It redraws about 30 times per second, and pauses while the panel is closed.
-struct LevelMeterView: View {
-    let meter: LevelMeter
-
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.isWindowVisible) private var isWindowVisible
-
-    var body: some View {
-        TimelineView(.animation(minimumInterval: reduceMotion ? 1.0 / 10 : 1.0 / 30, paused: !isWindowVisible)) { context in
-            let level = CGFloat(meter.level(at: context.date))
-            Canvas { graphics, size in
-                let track = Path(roundedRect: CGRect(origin: .zero, size: size), cornerRadius: size.height / 2)
-                graphics.fill(track, with: .style(.quaternary))
-                let width = max(0, min(size.width, size.width * level))
-                guard width > 0 else { return }
-                let fill = Path(roundedRect: CGRect(x: 0, y: 0, width: width, height: size.height), cornerRadius: size.height / 2)
-                graphics.fill(fill, with: .style(.tint))
-            }
-        }
-        .frame(height: 3)
-        .accessibilityHidden(true)
     }
 }
 

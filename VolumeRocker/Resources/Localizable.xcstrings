@@ -1,7 +1,544 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "${action} ${app}" : {
 
+    },
+    "%@" : {
+
+    },
+    "%@ Hz" : {
+
+    },
+    "%@ Hz: %@ dB" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ Hz: %2$@ dB"
+          }
+        }
+      }
+    },
+    "%@ Volume" : {
+
+    },
+    "%@ decibels" : {
+
+    },
+    "%@ hertz" : {
+
+    },
+    "%lld apps" : {
+
+    },
+    "+12 dB … −12 dB" : {
+
+    },
+    "A profile saves each app’s volume, mute, equalizer and output device. Apps a profile doesn’t know go back to 100%. Give profiles keyboard shortcuts in the Shortcuts tab." : {
+
+    },
+    "About" : {
+
+    },
+    "Access was turned off. You can turn it on in System Settings → Privacy & Security → Screen & System Audio Recording." : {
+
+    },
+    "Action" : {
+
+    },
+    "Allow Access…" : {
+
+    },
+    "Allow Volume Rocker in System Settings to finish." : {
+
+    },
+    "Allow volume boost up to 200%" : {
+
+    },
+    "Allowed" : {
+
+    },
+    "Also switch to %@" : {
+
+    },
+    "App" : {
+
+    },
+    "Applies a saved mix, such as Work or Movie." : {
+
+    },
+    "Apply" : {
+
+    },
+    "Apply ${profile}" : {
+
+    },
+    "Apply Profile" : {
+
+    },
+    "Apps" : {
+
+    },
+    "Apps appear here as soon as they play sound." : {
+
+    },
+    "Automatic updates aren’t set up in this build." : {
+
+    },
+    "Bass Boost" : {
+
+    },
+    "Bass Reducer" : {
+
+    },
+    "Cancel" : {
+
+    },
+    "Changes the output volume" : {
+
+    },
+    "Check for Updates Now" : {
+
+    },
+    "Check for updates automatically" : {
+
+    },
+    "Choose input device" : {
+
+    },
+    "Choose output device" : {
+
+    },
+    "Classical" : {
+
+    },
+    "Click for the mixer. Option-click for devices." : {
+
+    },
+    "Continue" : {
+
+    },
+    "Custom" : {
+
+    },
+    "Delete %@" : {
+
+    },
+    "Device" : {
+
+    },
+    "Devices" : {
+
+    },
+    "Electronic" : {
+
+    },
+    "Equalizer" : {
+
+    },
+    "Equalizer for %@" : {
+
+    },
+    "Equalizer: %@" : {
+
+    },
+    "Equalizer…" : {
+
+    },
+    "Exclude an App…" : {
+
+    },
+    "Excluded Apps" : {
+
+    },
+    "Flat" : {
+
+    },
+    "For example, keep music quieter on your speakers than on your headphones. Volumes switch automatically with the output device." : {
+
+    },
+    "Free and open source under the MIT License." : {
+
+    },
+    "General" : {
+
+    },
+    "GitHub" : {
+
+    },
+    "Give every app its own volume. Turn down a noisy browser tab without touching your music." : {
+
+    },
+    "Hides the device list" : {
+
+    },
+    "Input" : {
+
+    },
+    "Input Volume" : {
+
+    },
+    "Input device" : {
+
+    },
+    "Last checked" : {
+
+    },
+    "Late Night" : {
+
+    },
+    "Loudness" : {
+
+    },
+    "Makes quiet apps louder. A built-in limiter keeps boosted sound from distorting." : {
+
+    },
+    "Manage Profiles…" : {
+
+    },
+    "Menu Bar Icon" : {
+
+    },
+    "Mute" : {
+
+    },
+    "Mute %@" : {
+
+    },
+    "Mute Action" : {
+
+    },
+    "Mute App" : {
+
+    },
+    "Mute or unmute output" : {
+
+    },
+    "Muted" : {
+
+    },
+    "Mutes, unmutes or toggles one app’s sound." : {
+
+    },
+    "Name" : {
+
+    },
+    "Never" : {
+
+    },
+    "Next profile" : {
+
+    },
+    "No Device" : {
+
+    },
+    "No Profiles Yet" : {
+
+    },
+    "No excluded apps." : {
+
+    },
+    "None" : {
+
+    },
+    "Not Allowed" : {
+
+    },
+    "Not Requested" : {
+
+    },
+    "Off" : {
+
+    },
+    "On" : {
+
+    },
+    "One Permission" : {
+
+    },
+    "Open Login Items" : {
+
+    },
+    "Open Mixer" : {
+
+    },
+    "Open Privacy Settings" : {
+
+    },
+    "Open System Settings" : {
+
+    },
+    "Open Volume Rocker at login" : {
+
+    },
+    "Open at login" : {
+
+    },
+    "Open or close the mixer" : {
+
+    },
+    "Option-click or right-click it" : {
+
+    },
+    "Output" : {
+
+    },
+    "Output Device" : {
+
+    },
+    "Output Volume" : {
+
+    },
+    "Output device" : {
+
+    },
+    "Output device for %@" : {
+
+    },
+    "Output volume down" : {
+
+    },
+    "Output volume up" : {
+
+    },
+    "Per-app volume control for your Mac." : {
+
+    },
+    "Permission" : {
+
+    },
+    "Permission Needed" : {
+
+    },
+    "Play %@ On" : {
+
+    },
+    "Playing" : {
+
+    },
+    "Plays on %@" : {
+
+    },
+    "Plays the Mac’s sound through another device." : {
+
+    },
+    "Preset" : {
+
+    },
+    "Profile" : {
+
+    },
+    "Profile Name, e.g. Work" : {
+
+    },
+    "Profile: %@" : {
+
+    },
+    "Profiles" : {
+
+    },
+    "Quiet" : {
+
+    },
+    "Quit Volume Rocker" : {
+
+    },
+    "Remember app volumes for each output device" : {
+
+    },
+    "Remove" : {
+
+    },
+    "Report a Problem" : {
+
+    },
+    "Reset" : {
+
+    },
+    "Reset to 100%, No EQ" : {
+
+    },
+    "Rock" : {
+
+    },
+    "Same as App" : {
+
+    },
+    "Save" : {
+
+    },
+    "Save Current Mix" : {
+
+    },
+    "Save Current Mix…" : {
+
+    },
+    "Save your current mix from the menu bar panel with the profiles button." : {
+
+    },
+    "Scroll on the menu bar icon" : {
+
+    },
+    "See Releases on GitHub" : {
+
+    },
+    "Set ${app} volume to ${volume}%" : {
+
+    },
+    "Set App Volume" : {
+
+    },
+    "Set Output Volume" : {
+
+    },
+    "Set output volume to ${volume}%" : {
+
+    },
+    "Sets the Mac’s overall volume." : {
+
+    },
+    "Sets the volume of one app, from 0% to 100% (or up to 200% with boost)." : {
+
+    },
+    "Settings" : {
+
+    },
+    "Settings…" : {
+
+    },
+    "Shortcuts" : {
+
+    },
+    "Shortcuts App and Siri" : {
+
+    },
+    "Shortcuts work in every app." : {
+
+    },
+    "Show Recent Apps" : {
+
+    },
+    "Show input device in the mixer" : {
+
+    },
+    "Show recent apps in the mixer" : {
+
+    },
+    "Shows devices and profiles" : {
+
+    },
+    "Shows devices you can switch to" : {
+
+    },
+    "Spoken Word" : {
+
+    },
+    "Start Using Volume Rocker" : {
+
+    },
+    "Switch Output" : {
+
+    },
+    "Switch Output Device" : {
+
+    },
+    "Switch output to ${device}" : {
+
+    },
+    "Switch the microphone and change its input volume from the menu bar. This does not record audio." : {
+
+    },
+    "System Audio Recording" : {
+
+    },
+    "That device isn’t connected. Which device should play the sound?" : {
+
+    },
+    "That profile no longer exists. Which profile should be applied?" : {
+
+    },
+    "This device’s volume can’t be changed from the Mac." : {
+
+    },
+    "This is normal for builds made from source. Official releases update automatically." : {
+
+    },
+    "This replaces the existing profile with the same name." : {
+
+    },
+    "To change an app’s volume, macOS requires the “System Audio Recording” permission. Audio is processed on your Mac in real time. It is never recorded, saved or sent anywhere." : {
+
+    },
+    "To change the volume of individual apps, allow Volume Rocker to access system audio." : {
+
+    },
+    "Toggle" : {
+
+    },
+    "Treble Boost" : {
+
+    },
+    "Unknown" : {
+
+    },
+    "Unmute" : {
+
+    },
+    "Unmute %@" : {
+
+    },
+    "Updates" : {
+
+    },
+    "Updates are downloaded from GitHub and verified with a digital signature before installing." : {
+
+    },
+    "Used for apps you haven’t adjusted yet." : {
+
+    },
+    "Version %@" : {
+
+    },
+    "Vocal" : {
+
+    },
+    "Volume" : {
+
+    },
+    "Volume Rocker" : {
+
+    },
+    "Volume Rocker Mixer" : {
+
+    },
+    "Volume Rocker isn’t ready yet. Try again in a moment." : {
+
+    },
+    "Volume Rocker leaves excluded apps completely alone: they aren’t shown and their sound is never touched. Useful for pro audio apps or anything that should bypass the mixer." : {
+
+    },
+    "Volume Rocker lives in your menu bar. Click the speaker icon to open the mixer." : {
+
+    },
+    "Volume Rocker’s actions are also in the Shortcuts app: set an app’s volume, mute an app, switch the output device, set the output volume and apply a profile. Ask Siri, for example, “Apply Work in Volume Rocker”." : {
+
+    },
+    "Volume for new apps" : {
+
+    },
+    "Welcome to Volume Rocker" : {
+
+    },
+    "When off, only apps that are playing sound right now are shown." : {
+
+    },
+    "Wherever %@ plays by itself" : {
+
+    },
+    "You’re All Set" : {
+
+    }
   },
   "version" : "1.0"
 }

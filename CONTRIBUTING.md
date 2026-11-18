@@ -31,7 +31,11 @@ The `.xcodeproj` is generated from `project.yml` and is not committed. If you ad
 
 ## Translations
 
-Strings live in `VolumeRocker/Resources/Localizable.xcstrings`. Open it in Xcode, add a language, and translate. No coding required.
+Strings live in String Catalogs: `VolumeRocker/Resources/Localizable.xcstrings` (the app), `VolumeRocker/Resources/InfoPlist.xcstrings` (the permission prompt) and `VolumeRockerControls/Localizable.xcstrings` (Control Center). Open one in Xcode, add a language, and translate. No coding required. After changing UI text in code, run `Scripts/sync-strings.sh` to add new strings to the catalogs.
+
+## Screenshots
+
+`Scripts/render-readme-images.sh` re-renders the README images from the real SwiftUI views with example apps.
 
 ## Commit messages
 

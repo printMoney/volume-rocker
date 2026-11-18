@@ -15,14 +15,3 @@ enum VolumeSymbol {
         return "speaker.wave.3.fill"
     }
 }
-
-/// The menu bar icon, reflecting the current output volume and mute state.
-struct MenuBarIcon: View {
-    let output: DefaultDeviceController
-
-    var body: some View {
-        Image(systemName: VolumeSymbol.name(volume: output.volume, isMuted: output.isMuted))
-            .accessibilityLabel(Text("Volume Rocker"))
-            .accessibilityValue(output.isMuted ? Text("Muted") : Text(output.volume, format: .percent.precision(.fractionLength(0))))
-    }
-}

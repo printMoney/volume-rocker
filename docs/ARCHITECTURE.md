@@ -42,7 +42,7 @@ flowchart LR
 | `DeviceManager/` | Lists devices, default device, system volume/mute, connect/disconnect, sleep/wake | Main + listener queue |
 | `AudioEngine/` | `AudioEngine` actor creates taps and aggregate devices; `TapRenderState` is the real-time render code | **Real-time** (IOProc) + engine actor (setup) |
 | `Persistence/` | Per-app and per-device settings and profiles (`UserDefaults`, Codable) | Main |
-| `UI/` | SwiftUI menu panel, Settings, onboarding; `StatusItemController` for scroll/Option-click on the icon | Main |
+| `UI/` | SwiftUI mixer, Settings, onboarding; `StatusItemController` (menu bar icon) and `MixerPanelController` (the floating panel) | Main |
 | `Integration/` | App Intents (Shortcuts, Siri), Sparkle updates, launch at login | Main |
 | `VolumeRockerControls/` | Separate, sandboxed WidgetKit extension with Control Center controls (macOS 26+) | Its own process |
 
@@ -89,7 +89,8 @@ Volume changes don't go through the engine at all. The slider writes the new gai
 - **There is no public API to check the System Audio Recording permission.** Without the permission, a tap still "works" but delivers silence while muting the app, which would silence the user's apps. Volume Rocker therefore checks it through the TCC framework's `TCCAccessPreflight`/`TCCAccessRequest`, loaded dynamically (the same approach as the well-known AudioCap sample). If those functions disappear, the app falls back to the system prompt.
 - **Helper processes.** Browsers play sound from helper processes. Chrome's helpers live inside `Google Chrome.app`, so the outermost `.app` in the executable path identifies the app. Safari's audio comes from WebKit's GPU process, which lives outside Safari. For that case macOS's "responsible process" (looked up with `responsibility_get_pid_responsible_for_pid`, also loaded dynamically) points back to Safari.
 - **Taps always deliver 48 kHz.** The tap's format is 48 kHz stereo even when the app plays to a 44.1 kHz device, and pinning the tap to a device (`CATapDescription.deviceUID`) doesn't change that. The aggregate device's drift compensation converts the rate, and the IOProc receives equal frame counts for input and output. But a tap entry without an explicit `kAudioSubTapDriftCompensationQualityKey` uses a low-quality converter, which was audible as distortion on 44.1 kHz Bluetooth headphones. Volume Rocker requests `kAudioAggregateDriftCompensationMaxQuality`, at about 1% CPU per playing app.
-- **Hidden menu bar panels keep animating.** A `MenuBarExtra` window stays alive while closed, and SwiftUI keeps `TimelineView` animations running in it. The level meters therefore pause based on the panel window's occlusion state (`NSWindow.didChangeOcclusionStateNotification`). Without this, the closed panel used about 20% CPU while audio played.
+- **Hidden windows keep animating.** A hidden panel stays alive, and SwiftUI animations and timers keep running in it. The level meters therefore pause based on the window's occlusion state (`NSWindow.didChangeOcclusionStateNotification`).
+- **A view's display link can force full layout.** Driving the meters with `NSView.displayLink` made AppKit re-run the whole window's SwiftUI layout every frame (about 25% CPU). A plain timer that only moves `CALayer`s costs about 1%.
 - **Headsets with microphones.** An aggregate device built on AirPods also contains their microphone, which could switch Bluetooth into low-quality call mode. The engine marks those input streams as unused for its IOProc (`kAudioDevicePropertyIOProcStreamUsage`).
 
 ## Lifecycle and robustness
@@ -107,8 +108,10 @@ Volume changes don't go through the engine at all. The slider writes the new gai
 
 ## Menu bar icon, shortcuts and Control Center
 
-- **Scroll and Option-click:** `MenuBarExtra` has no API for either. `StatusItemController` installs a *local* event monitor (only this app's events) and handles scroll-wheel and Option-click/right-click events whose window is the app's own `NSStatusBarWindow`. Scrolling follows the physical direction regardless of "natural scrolling".
-- **Opening the panel from a shortcut** clicks the status item's button programmatically.
+- **Why not `MenuBarExtra`:** SwiftUI's `MenuBarExtra` can't be opened by the app itself. On macOS 27 neither `performClick` nor a synthesized click on its button opens it, so keyboard shortcuts and the Control Center control couldn't open the mixer. It also has no scroll or Option-click handling. Volume Rocker therefore uses an `NSStatusItem` (`StatusItemController`) and its own `NSPanel` (`MixerPanelController`) that hosts the SwiftUI mixer.
+- **The panel** is a non-activating, key-capable panel below the icon. It uses `NSGlassEffectView` (Liquid Glass) on macOS 26+ and `NSVisualEffectView` (popover material) on macOS 15. It closes on Escape, on a click elsewhere, or on another click on the icon, and it is built in the background shortly after launch so it opens in about 25 ms.
+- **Scroll and Option-click:** a click on the icon arrives as the button's action; right-click or Option-click shows a menu of devices and profiles instead. Scrolling is caught by a *local* event monitor for the icon's window and follows the physical direction regardless of "natural scrolling".
+- **Level meters** are Core Animation layers updated by a 30 Hz timer, and stop whenever the panel isn't visible. See [PERFORMANCE.md](PERFORMANCE.md) for why.
 - **Keyboard shortcuts** use the KeyboardShortcuts package. Each profile gets its own shortcut name (`profile.<UUID>`).
 - **App Intents** run inside the app. Entities: apps (bundle IDs from running and remembered apps), output devices (by UID) and profiles.
 - **Control Center controls** live in a sandboxed extension. *Mute Sound* changes the default device's mute directly through Core Audio, so it works even when the app isn't running. *Next Profile* and *Open Volume Rocker* post a distributed notification without any data, which the running app observes. Any local process could post the same notifications, but they can only switch profiles or open the panel.

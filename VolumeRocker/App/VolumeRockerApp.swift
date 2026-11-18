@@ -1,19 +1,13 @@
 import SwiftUI
 
 /// App entry point. Volume Rocker lives only in the menu bar (`LSUIElement`), so there is no Dock icon
-/// and no main window, just the mixer panel and a separate Settings window.
+/// and no main window. The menu bar icon and mixer panel are created by the app delegate
+/// (`StatusItemController`, `MixerPanelController`); SwiftUI provides the Settings window.
 @main
 struct VolumeRockerApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     var body: some Scene {
-        MenuBarExtra {
-            MixerPanelView(model: appDelegate.model)
-        } label: {
-            MenuBarIcon(output: appDelegate.model.output)
-        }
-        .menuBarExtraStyle(.window)
-
         Settings {
             SettingsView(model: appDelegate.model, updates: appDelegate.updates, loginItem: appDelegate.loginItem)
         }
@@ -26,7 +20,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let updates = UpdateController()
     let loginItem = LoginItem()
     private let onboarding = OnboardingWindowController()
-    private lazy var statusItem = StatusItemController(model: model)
+    private lazy var panel = MixerPanelController(model: model)
+    private lazy var statusItem = StatusItemController(model: model, panel: panel)
     private lazy var shortcuts = ShortcutController(model: model, statusItem: statusItem)
     private var distributedObservers: [any NSObjectProtocol] = []
 
@@ -47,6 +42,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         shortcuts.start()
         model.onProfilesChanged = { [weak self] in self?.shortcuts.refreshProfileShortcuts() }
         observeControlCenterRequests()
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(1))
+            self?.panel.prepare()
+        }
         if !model.hasCompletedOnboarding {
             onboarding.show(model: model, loginItem: loginItem)
         }

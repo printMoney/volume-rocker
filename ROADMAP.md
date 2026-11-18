@@ -63,12 +63,12 @@ Notes: keyboard shortcuts for profiles arrive with the other shortcuts in Phase 
 
 Notes: the Control Center controls need macOS 26. *Next Profile* and *Open Volume Rocker* need the app to be running; *Mute Sound* works without it. Auto-updates switch on once the Sparkle key is set up (docs/RELEASING.md).
 
-## Release readiness ⬜
+## Release readiness ✅
 
-- ⬜ Instruments performance check (idle < 1% CPU, active < 3%, < 50 MB)
-- ⬜ Memory-leak check
-- ⬜ Accessibility audit (VoiceOver, keyboard navigation, Reduce Motion/Transparency)
-- ⬜ README polish with real screenshots
+- ✅ Instruments performance check: idle 0.32%, processing 1.36%, panel open 2.13%, 32 MB (docs/PERFORMANCE.md)
+- ✅ Memory-leak check: 0 leaks
+- ✅ Accessibility audit (VoiceOver, keyboard navigation, Reduce Motion/Transparency)
+- ✅ README polish with rendered screenshots (light and dark)
 
 ## Performance targets
 

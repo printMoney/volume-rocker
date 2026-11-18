@@ -1,0 +1,36 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Mute Sound" : {
+
+    },
+    "Muted" : {
+
+    },
+    "Mutes or unmutes the Mac’s sound output." : {
+
+    },
+    "Next Profile" : {
+
+    },
+    "Next Volume Profile" : {
+
+    },
+    "Open Volume Rocker" : {
+
+    },
+    "Opens the per-app volume mixer." : {
+
+    },
+    "Sound On" : {
+
+    },
+    "Switches Volume Rocker to the next saved profile." : {
+
+    },
+    "Volume Rocker" : {
+
+    }
+  },
+  "version" : "1.0"
+}

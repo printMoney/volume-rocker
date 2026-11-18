@@ -7,6 +7,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Opening the mixer from a keyboard shortcut or the Control Center control did nothing on macOS 27.
+- The panel used up to 26% CPU while open; it now uses about 2% (see docs/PERFORMANCE.md).
+- `Scripts/build.sh` failed when the app was running from `dist/`.
 - A harmless Core Audio error was logged whenever an app quit.
 - Level meters kept redrawing while the panel was closed, using about 20% CPU while audio played.
 - `Scripts/build.sh` could report success after a failed build.
@@ -25,6 +28,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- The menu bar icon and panel are now AppKit (`NSStatusItem` + panel with Liquid Glass on macOS 26) instead of SwiftUI's `MenuBarExtra`, which apps can't open programmatically.
+- The panel is built in the background after launch, so it opens in about 25 ms.
+- VoiceOver now moves into the panel when it opens, and announces whether each app is playing.
+- All user-facing strings are in String Catalogs, including the permission prompt and the Control Center controls.
+- README with real screenshots, a usage table and an expanded FAQ; new performance report.
 - Ad-hoc signed builds no longer use the hardened runtime, so they can load the embedded frameworks. Developer ID releases still use it.
 - **Volume boost up to 200%** per app (turn on in Settings → General), with a built-in limiter so boosted audio never clips.
 - **10-band equalizer per app** with presets (Bass Boost, Vocal, Spoken Word, Loudness, Rock, Electronic, Classical, Late Night and more).

@@ -3,6 +3,8 @@ import SwiftUI
 /// The panel that opens when you click the menu bar icon.
 struct MixerPanelView: View {
     let model: MixerModel
+    /// Closes the panel (before opening Settings, for example).
+    var onRequestClose: () -> Void = {}
 
     @Environment(\.openSettings) private var openSettings
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -122,6 +124,7 @@ struct MixerPanelView: View {
             profilesMenu
 
             Button {
+                onRequestClose()
                 NSApp.activate()
                 openSettings()
             } label: {

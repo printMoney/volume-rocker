@@ -1,58 +1,101 @@
 import AppKit
+import Observation
 
-/// Extra menu bar icon behavior that SwiftUI's `MenuBarExtra` doesn't offer:
-/// scroll over the icon to change the output volume, and Option-click (or right-click) it for a quick
-/// device menu. It also lets keyboard shortcuts open the panel.
+/// The menu bar icon. It is an AppKit `NSStatusItem` rather than SwiftUI's `MenuBarExtra`, because
+/// `MenuBarExtra` can't be opened by the app itself (needed for keyboard shortcuts and Control Center) and
+/// offers no scroll or Option-click handling.
 ///
-/// `MenuBarExtra` creates the status item itself, so events are recognized by the window they arrive in:
-/// the menu bar icon lives in an `NSStatusBarWindow` that belongs to this app.
+/// - Click: open or close the mixer panel.
+/// - Scroll: change the output volume.
+/// - Option-click or right-click: quick menu of devices and profiles.
 @MainActor
 final class StatusItemController {
     private let model: MixerModel
-    private var monitor: Any?
+    private let panel: MixerPanelController
+    private var statusItem: NSStatusItem?
+    private var scrollMonitor: Any?
 
-    init(model: MixerModel) {
+    init(model: MixerModel, panel: MixerPanelController) {
         self.model = model
+        self.panel = panel
     }
 
     func start() {
-        monitor = NSEvent.addLocalMonitorForEvents(matching: [.scrollWheel, .leftMouseDown, .rightMouseDown]) { [weak self] event in
-            let handled = MainActor.assumeIsolated { self?.handle(event) ?? false }
+        let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        item.behavior = []
+        if let button = item.button {
+            button.target = self
+            button.action = #selector(buttonPressed)
+            button.sendAction(on: [.leftMouseDown, .rightMouseDown])
+            button.setAccessibilityLabel(String(localized: "Volume Rocker"))
+            button.setAccessibilityHelp(String(localized: "Click for the mixer. Option-click for devices."))
+        }
+        statusItem = item
+        panel.anchor = { [weak self] in self?.statusItem?.button }
+        panel.onVisibilityChange = { [weak self] visible in self?.statusItem?.button?.highlight(visible) }
+        updateIcon()
+
+        // Scrolling over the icon: a local monitor sees events for this app's windows, including the icon's.
+        scrollMonitor = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { [weak self] event in
+            let handled = MainActor.assumeIsolated { self?.handleScroll(event) ?? false }
             return handled ? nil : event
         }
     }
 
     func stop() {
-        if let monitor {
-            NSEvent.removeMonitor(monitor)
+        if let scrollMonitor {
+            NSEvent.removeMonitor(scrollMonitor)
         }
-        monitor = nil
+        scrollMonitor = nil
+        if let statusItem {
+            NSStatusBar.system.removeStatusItem(statusItem)
+        }
+        statusItem = nil
     }
 
-    /// Opens or closes the mixer panel, as if the menu bar icon was clicked.
+    /// Opens or closes the mixer panel (also used by keyboard shortcuts and Control Center).
     func togglePanel() {
-        statusButton?.performClick(nil)
+        panel.toggle()
     }
 
     // MARK: Events
 
-    private func handle(_ event: NSEvent) -> Bool {
-        guard let window = event.window, Self.isStatusBarWindow(window) else { return false }
-        switch event.type {
-        case .scrollWheel:
-            let delta = Self.volumeDelta(
-                scrollingDeltaY: Float(event.scrollingDeltaY),
-                isPrecise: event.hasPreciseScrollingDeltas,
-                isInverted: event.isDirectionInvertedFromDevice
-            )
-            guard delta != 0, model.output.hasVolumeControl else { return true }
+    @objc private func buttonPressed() {
+        guard let event = NSApp.currentEvent else { return panel.toggle() }
+        if event.type == .rightMouseDown || event.modifierFlags.contains(.option) {
+            panel.close()
+            showDeviceMenu()
+        } else {
+            panel.toggle()
+        }
+    }
+
+    private func handleScroll(_ event: NSEvent) -> Bool {
+        guard let button = statusItem?.button, event.window === button.window else { return false }
+        let delta = Self.volumeDelta(
+            scrollingDeltaY: Float(event.scrollingDeltaY),
+            isPrecise: event.hasPreciseScrollingDeltas,
+            isInverted: event.isDirectionInvertedFromDevice
+        )
+        if delta != 0, model.output.hasVolumeControl {
             model.output.setVolume(model.output.volume + delta)
-            return true
-        case .leftMouseDown where event.modifierFlags.contains(.option), .rightMouseDown:
-            showDeviceMenu(below: window)
-            return true
-        default:
-            return false
+        }
+        return true
+    }
+
+    /// Keeps the icon in sync with the output volume and mute, using Observation.
+    private func updateIcon() {
+        withObservationTracking {
+            let output = model.output
+            let symbol = VolumeSymbol.name(volume: output.volume, isMuted: output.isMuted)
+            let image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)
+            image?.isTemplate = true
+            statusItem?.button?.image = image
+            statusItem?.button?.setAccessibilityValue(
+                output.isMuted ? String(localized: "Muted") : output.volume.formatted(.percent.precision(.fractionLength(0)))
+            )
+        } onChange: { [weak self] in
+            Task { @MainActor in self?.updateIcon() }
         }
     }
 
@@ -64,29 +107,9 @@ final class StatusItemController {
         return max(-0.25, min(0.25, physical * scale))
     }
 
-    nonisolated static func isStatusBarWindow(_ window: NSWindow) -> Bool {
-        window.className.contains("NSStatusBarWindow")
-    }
-
-    private var statusButton: NSButton? {
-        NSApp.windows.first(where: Self.isStatusBarWindow)?.contentView.flatMap(Self.findButton)
-    }
-
-    private static func findButton(in view: NSView) -> NSButton? {
-        if let button = view as? NSButton {
-            return button
-        }
-        for subview in view.subviews {
-            if let button = findButton(in: subview) {
-                return button
-            }
-        }
-        return nil
-    }
-
     // MARK: Device menu
 
-    private func showDeviceMenu(below window: NSWindow) {
+    private func showDeviceMenu() {
         let menu = NSMenu()
         menu.autoenablesItems = false
         addSection(to: menu, title: String(localized: "Output"), devices: model.devices.outputs, direction: .output)
@@ -106,8 +129,10 @@ final class StatusItemController {
         menu.addItem(.separator())
         menu.addItem(ClosureMenuItem(title: String(localized: "Open Mixer")) { [weak self] in self?.togglePanel() })
 
-        let origin = NSPoint(x: window.frame.minX, y: window.frame.minY - 4)
-        menu.popUp(positioning: nil, at: origin, in: nil)
+        // Shows the menu below the icon, like any menu bar menu.
+        statusItem?.menu = menu
+        statusItem?.button?.performClick(nil)
+        statusItem?.menu = nil
     }
 
     private func addSection(to menu: NSMenu, title: String, devices: [AudioDevice], direction: AudioDirection) {

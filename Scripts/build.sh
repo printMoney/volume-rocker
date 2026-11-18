@@ -7,6 +7,12 @@ cd "$(dirname "$0")/.."
 command -v xcodegen >/dev/null || { echo "XcodeGen is missing. Install it with: brew install xcodegen"; exit 1; }
 xcodegen generate --quiet
 
+# A copy running from dist/ would block replacing it.
+if pgrep -f "$PWD/dist/Volume Rocker.app/Contents/MacOS" >/dev/null; then
+  echo "Quitting the copy of Volume Rocker running from dist/..."
+  pkill -f "$PWD/dist/Volume Rocker.app/Contents/MacOS" || true
+  sleep 2
+fi
 rm -rf dist build/Release build/DerivedData/Build/Products/Release
 mkdir -p dist build
 set +e
