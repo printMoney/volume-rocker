@@ -1,5 +1,6 @@
 included:
   - VolumeRocker
+  - VolumeRockerControls
   - VolumeRockerTests
 excluded:
   - build

@@ -11,17 +11,25 @@ options:
   groupSortPosition: top
 
 settings:
+  configs:
+    # Hardened runtime only where it's needed (notarized releases). Locally signed builds can't use it,
+    # because it requires every embedded framework to come from the same developer team.
+    Release:
+      ENABLE_HARDENED_RUNTIME: YES
+    Debug:
+      ENABLE_HARDENED_RUNTIME: NO
   base:
     MARKETING_VERSION: 0.1.0
     CURRENT_PROJECT_VERSION: 1
     SWIFT_VERSION: "6.0"
     SWIFT_STRICT_CONCURRENCY: complete
+    # Zero warnings policy for our own code (packages keep their own settings).
+    SWIFT_TREAT_WARNINGS_AS_ERRORS: YES
     SWIFT_UPCOMING_FEATURE_EXISTENTIAL_ANY: YES
     # Apple Silicon only
     ARCHS: arm64
     EXCLUDED_ARCHS: x86_64
     MACOSX_DEPLOYMENT_TARGET: "15.0"
-    ENABLE_HARDENED_RUNTIME: YES
     DEAD_CODE_STRIPPING: YES
     # Local builds are ad-hoc signed. Release builds are re-signed with Developer ID by Scripts/ and CI.
     CODE_SIGN_STYLE: Manual
@@ -32,6 +40,15 @@ settings:
     SWIFT_EMIT_LOC_STRINGS: YES
     # Needed so the SwiftLint build phase can read the source files
     ENABLE_USER_SCRIPT_SANDBOXING: NO
+
+packages:
+  # Exact versions keep builds reproducible. Update deliberately and note it in CHANGELOG.md.
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    exactVersion: 2.10.1
+  KeyboardShortcuts:
+    url: https://github.com/sindresorhus/KeyboardShortcuts
+    exactVersion: 3.1.0
 
 targets:
   VolumeRocker:
@@ -50,6 +67,10 @@ targets:
         INFOPLIST_FILE: VolumeRocker/Resources/Info.plist
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ENABLE_PREVIEWS: YES
+    dependencies:
+      - package: Sparkle
+      - package: KeyboardShortcuts
+      - target: VolumeRockerControls
     postCompileScripts:
       - name: SwiftLint
         basedOnDependencyAnalysis: false
@@ -61,6 +82,25 @@ targets:
           else
             echo "note: SwiftLint is not installed; skipping lint (brew install swiftlint)"
           fi
+
+  VolumeRockerControls:
+    # Control Center / menu bar controls (WidgetKit), macOS 26 and later.
+    type: app-extension
+    platform: macOS
+    deploymentTarget: "26.0"
+    sources:
+      - path: VolumeRockerControls
+        excludes:
+          - Info.plist
+          - "*.entitlements"
+    settings:
+      base:
+        PRODUCT_NAME: VolumeRockerControls
+        PRODUCT_BUNDLE_IDENTIFIER: io.github.printmoney.VolumeRocker.Controls
+        INFOPLIST_FILE: VolumeRockerControls/Info.plist
+        CODE_SIGN_ENTITLEMENTS: VolumeRockerControls/VolumeRockerControls.entitlements
+        MACOSX_DEPLOYMENT_TARGET: "26.0"
+        SKIP_INSTALL: YES
 
   VolumeRockerTests:
     type: bundle.unit-test

@@ -12,7 +12,7 @@ permissions:
   contents: write
 
 env:
-  SPARKLE_VERSION: "2.6.4"
+  SPARKLE_VERSION: "2.10.1"
 
 jobs:
   release:

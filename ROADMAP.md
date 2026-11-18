@@ -50,16 +50,18 @@ Notes: AirPlay receivers appear through macOS's single "AirPlay" device; choosin
 
 Notes: keyboard shortcuts for profiles arrive with the other shortcuts in Phase 4.
 
-## Phase 4: Integration and quality of life ⬜
+## Phase 4: Integration and quality of life ✅
 
-- ⬜ Scroll on the menu bar icon for master volume; Option-click for the device list
-- ⬜ Global keyboard shortcuts (KeyboardShortcuts)
-- ⬜ App Intents for Shortcuts and Siri
-- ⬜ Control Center control (WidgetKit, macOS 26)
-- ⬜ Launch at login (`SMAppService`)
-- ⬜ Settings window: General, Apps, Devices, Shortcuts, Updates, About
-- ⬜ First-launch onboarding
-- ⬜ Sparkle auto-updates (EdDSA-signed appcast)
+- ✅ Scroll on the menu bar icon for master volume; Option-click for the device list
+- ✅ Global keyboard shortcuts (KeyboardShortcuts)
+- ✅ App Intents for Shortcuts and Siri
+- ✅ Control Center control (WidgetKit, macOS 26)
+- ✅ Launch at login (`SMAppService`)
+- ✅ Settings window: General, Apps, Devices, Shortcuts, Updates, About
+- ✅ First-launch onboarding
+- ✅ Sparkle auto-updates (EdDSA-signed appcast)
+
+Notes: the Control Center controls need macOS 26. *Next Profile* and *Open Volume Rocker* need the app to be running; *Mute Sound* works without it. Auto-updates switch on once the Sparkle key is set up (docs/RELEASING.md).
 
 ## Release readiness ⬜
 

@@ -42,7 +42,9 @@ flowchart LR
 | `DeviceManager/` | Lists devices, default device, system volume/mute, connect/disconnect, sleep/wake | Main + listener queue |
 | `AudioEngine/` | `AudioEngine` actor creates taps and aggregate devices; `TapRenderState` is the real-time render code | **Real-time** (IOProc) + engine actor (setup) |
 | `Persistence/` | Per-app and per-device settings and profiles (`UserDefaults`, Codable) | Main |
-| `UI/` | SwiftUI menu panel, Settings, onboarding | Main |
+| `UI/` | SwiftUI menu panel, Settings, onboarding; `StatusItemController` for scroll/Option-click on the icon | Main |
+| `Integration/` | App Intents (Shortcuts, Siri), Sparkle updates, launch at login | Main |
+| `VolumeRockerControls/` | Separate, sandboxed WidgetKit extension with Control Center controls (macOS 26+) | Its own process |
 
 Models are `@Observable` and isolated to the `MainActor`. The project compiles in Swift 6 language mode with complete strict-concurrency checking.
 
@@ -102,6 +104,18 @@ Volume changes don't go through the engine at all. The slider writes the new gai
 - **Profiles:** a profile is a snapshot of every app's settings, plus optionally the output device. Applying it sets known apps and resets the others to 100%.
 - **Per-device memory (optional):** with "Remember app volumes for each output device" on, settings are stored as `"<device UID>|<bundle ID>"`. A new device starts from the app's general setting.
 - **Crash safety:** private aggregate devices and taps belong to the Volume Rocker process. If it crashes or quits, macOS removes them and the apps play normally again, so audio is never left silent.
+
+## Menu bar icon, shortcuts and Control Center
+
+- **Scroll and Option-click:** `MenuBarExtra` has no API for either. `StatusItemController` installs a *local* event monitor (only this app's events) and handles scroll-wheel and Option-click/right-click events whose window is the app's own `NSStatusBarWindow`. Scrolling follows the physical direction regardless of "natural scrolling".
+- **Opening the panel from a shortcut** clicks the status item's button programmatically.
+- **Keyboard shortcuts** use the KeyboardShortcuts package. Each profile gets its own shortcut name (`profile.<UUID>`).
+- **App Intents** run inside the app. Entities: apps (bundle IDs from running and remembered apps), output devices (by UID) and profiles.
+- **Control Center controls** live in a sandboxed extension. *Mute Sound* changes the default device's mute directly through Core Audio, so it works even when the app isn't running. *Next Profile* and *Open Volume Rocker* post a distributed notification without any data, which the running app observes. Any local process could post the same notifications, but they can only switch profiles or open the panel.
+
+## Signing
+
+Releases signed with Developer ID use the hardened runtime, as notarization requires. Ad-hoc builds (local builds and the unsigned fallback) do **not**: the hardened runtime only loads frameworks from the same developer team, and ad-hoc signatures have no team, so the app couldn't load Sparkle. `Scripts/sign.sh` signs inside out (Sparkle's helpers, frameworks, the extension, then the app) and keeps each piece's entitlements.
 
 ## Permissions
 

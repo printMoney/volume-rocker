@@ -7,12 +7,25 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- A harmless Core Audio error was logged whenever an app quit.
 - Level meters kept redrawing while the panel was closed, using about 20% CPU while audio played.
 - `Scripts/build.sh` could report success after a failed build.
 - Distorted audio on Bluetooth headphones and other devices that don't run at 48 kHz. Sample-rate conversion now uses the best quality.
 
 ### Added
 
+- **Scroll on the menu bar icon** to change the output volume; **Option-click or right-click** it for a quick menu of output and input devices and profiles.
+- **Global keyboard shortcuts** (Settings → Shortcuts): open the mixer, mute, volume up/down, next profile, and one per profile.
+- **Shortcuts and Siri actions:** Set App Volume, Mute App, Switch Output Device, Set Output Volume, Apply Profile.
+- **Control Center controls** (macOS 26): Mute Sound, Next Volume Profile, Open Volume Rocker.
+- **Open at login** (Settings → General and onboarding).
+- **Automatic updates** with Sparkle 2, EdDSA-signed (Settings → Updates; active once a signing key is configured).
+- Settings → **Apps**: default volume for new apps and **excluded apps** that Volume Rocker never touches.
+- Settings now has General, Apps, Devices, Shortcuts, Profiles, Updates and About tabs.
+
+### Changed
+
+- Ad-hoc signed builds no longer use the hardened runtime, so they can load the embedded frameworks. Developer ID releases still use it.
 - **Volume boost up to 200%** per app (turn on in Settings → General), with a built-in limiter so boosted audio never clips.
 - **10-band equalizer per app** with presets (Bass Boost, Vocal, Spoken Word, Loudness, Rock, Electronic, Classical, Late Night and more).
 - **Per-app output routing:** play any app on a specific device, e.g. calls on the headset and music on the speakers.

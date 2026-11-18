@@ -7,13 +7,13 @@ import SwiftUI
 final class OnboardingWindowController {
     private var window: NSWindow?
 
-    func show(model: MixerModel) {
+    func show(model: MixerModel, loginItem: LoginItem) {
         if let window {
             window.makeKeyAndOrderFront(nil)
             NSApp.activate()
             return
         }
-        let view = OnboardingView(model: model) { [weak self] in self?.close() }
+        let view = OnboardingView(model: model, loginItem: loginItem) { [weak self] in self?.close() }
         let window = NSWindow(contentViewController: NSHostingController(rootView: view))
         window.styleMask = [.titled, .closable, .fullSizeContentView]
         window.titlebarAppearsTransparent = true
@@ -35,6 +35,7 @@ final class OnboardingWindowController {
 /// Welcome → permission → done.
 struct OnboardingView: View {
     let model: MixerModel
+    let loginItem: LoginItem
     let onFinish: () -> Void
 
     private enum Step { case welcome, permission, done }
@@ -112,6 +113,12 @@ struct OnboardingView: View {
             title: Text("You’re All Set"),
             message: Text("Volume Rocker lives in your menu bar. Click the speaker icon to open the mixer.")
         ) {
+            Toggle("Open Volume Rocker at login", isOn: Binding(
+                get: { loginItem.isEnabled },
+                set: { loginItem.setEnabled($0) }
+            ))
+            .toggleStyle(.checkbox)
+            .buttonStyle(.automatic)
             Button("Start Using Volume Rocker") {
                 model.completeOnboarding()
                 onFinish()

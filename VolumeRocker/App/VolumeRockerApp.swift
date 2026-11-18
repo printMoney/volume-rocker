@@ -15,7 +15,7 @@ struct VolumeRockerApp: App {
         .menuBarExtraStyle(.window)
 
         Settings {
-            SettingsView(model: appDelegate.model)
+            SettingsView(model: appDelegate.model, updates: appDelegate.updates, loginItem: appDelegate.loginItem)
         }
     }
 }
@@ -23,7 +23,17 @@ struct VolumeRockerApp: App {
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let model = MixerModel()
+    let updates = UpdateController()
+    let loginItem = LoginItem()
     private let onboarding = OnboardingWindowController()
+    private lazy var statusItem = StatusItemController(model: model)
+    private lazy var shortcuts = ShortcutController(model: model, statusItem: statusItem)
+    private var distributedObservers: [any NSObjectProtocol] = []
+
+    override init() {
+        super.init()
+        AppServices.model = model
+    }
 
     /// Unit tests launch the app as their host; don't touch real audio then.
     private var isRunningTests: Bool {
@@ -33,15 +43,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_: Notification) {
         guard !isRunningTests else { return }
         model.start()
+        statusItem.start()
+        shortcuts.start()
+        model.onProfilesChanged = { [weak self] in self?.shortcuts.refreshProfileShortcuts() }
+        observeControlCenterRequests()
         if !model.hasCompletedOnboarding {
-            onboarding.show(model: model)
+            onboarding.show(model: model, loginItem: loginItem)
         }
+    }
+
+    /// The Control Center control runs in a separate, sandboxed process. It asks the app to act by posting
+    /// distributed notifications without any data attached.
+    private func observeControlCenterRequests() {
+        let center = DistributedNotificationCenter.default()
+        distributedObservers = [
+            center.addObserver(forName: ControlCenterRequest.nextProfile, object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.model.applyNextProfile() }
+            },
+            center.addObserver(forName: ControlCenterRequest.openMixer, object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.statusItem.togglePanel() }
+            },
+        ]
     }
 
     func applicationDidBecomeActive(_: Notification) {
         guard !isRunningTests else { return }
-        // The user may have changed the permission in System Settings.
+        // The user may have changed the permission or login item in System Settings.
         model.refreshPermission()
+        loginItem.refresh()
     }
 
     func applicationWillTerminate(_: Notification) {

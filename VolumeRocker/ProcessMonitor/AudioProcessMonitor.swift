@@ -29,6 +29,12 @@ final class AudioProcessMonitor {
         reload()
     }
 
+    /// Re-reads all processes and reports them, even if nothing changed.
+    func refresh() {
+        processes = []
+        reload()
+    }
+
     func stop() {
         listListener = nil
         processListeners.removeAll()

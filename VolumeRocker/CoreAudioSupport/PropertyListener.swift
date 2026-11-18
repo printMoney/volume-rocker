@@ -20,6 +20,8 @@ final class PropertyListener {
 
     deinit {
         var address = address
+        // The object may already be gone (e.g. the app quit); then there is nothing to remove.
+        guard AudioObjectHasProperty(objectID, &address) else { return }
         AudioObjectRemovePropertyListenerBlock(objectID, &address, .main, block)
     }
 }

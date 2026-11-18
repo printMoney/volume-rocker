@@ -27,7 +27,7 @@ The `.xcodeproj` is generated from `project.yml` and is not committed. If you ad
 - UI and models live on the `MainActor` and use `@Observable`.
 - **Audio thread:** no allocations, locks, logging, `async` calls or Objective-C. Use `Atomic` to share values. If unsure, ask in the PR.
 - Prefer SwiftUI. Use AppKit only where SwiftUI can't do the job.
-- New dependencies need discussion in an issue first.
+- New dependencies need discussion in an issue first. Current ones: Sparkle (updates) and KeyboardShortcuts, pinned to exact versions in `project.yml`.
 
 ## Translations
 

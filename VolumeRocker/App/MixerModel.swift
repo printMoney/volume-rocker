@@ -15,7 +15,7 @@ final class MixerModel {
     let output = DefaultDeviceController(direction: .output)
     let input = DefaultDeviceController(direction: .input)
     let devices = AudioDeviceList()
-    private(set) var apps: [AppAudioItem] = []
+    var apps: [AppAudioItem] = []
     private(set) var permission: AudioCapturePermission.Status = .unknown
     private(set) var hasCompletedOnboarding: Bool
 
@@ -40,9 +40,23 @@ final class MixerModel {
         }
     }
 
+    /// Apps Volume Rocker ignores completely: not shown, never tapped.
+    var excludedAppIDs: Set<String>
+
+    /// Volume for apps that have never been adjusted.
+    var newAppVolume: Float {
+        didSet {
+            defaults.set(newAppVolume, forKey: Keys.newAppVolume)
+            applyNewAppDefault()
+        }
+    }
+
+    /// Called when profiles are added, renamed or removed (keyboard shortcuts follow them).
+    @ObservationIgnored var onProfilesChanged: (@MainActor () -> Void)?
+
     /// Saved mixes, and the one applied last.
-    private(set) var profiles: [MixProfile] = []
-    private(set) var activeProfileID: UUID?
+    var profiles: [MixProfile] = []
+    var activeProfileID: UUID?
 
     var rememberVolumesPerDevice: Bool {
         didSet {
@@ -51,14 +65,14 @@ final class MixerModel {
         }
     }
 
-    @ObservationIgnored private let defaults: UserDefaults
-    @ObservationIgnored private let store: AppVolumeStore
-    @ObservationIgnored private let profileStore: ProfileStore
-    @ObservationIgnored private let monitor = AudioProcessMonitor()
+    @ObservationIgnored let defaults: UserDefaults
+    @ObservationIgnored let store: AppVolumeStore
+    @ObservationIgnored let profileStore: ProfileStore
+    @ObservationIgnored let monitor = AudioProcessMonitor()
     @ObservationIgnored private let resolver = AppResolver()
     @ObservationIgnored private let engine = AudioEngine()
     @ObservationIgnored private let systemEvents = SystemAudioEvents()
-    @ObservationIgnored private var itemsByID: [String: AppAudioItem] = [:]
+    @ObservationIgnored var itemsByID: [String: AppAudioItem] = [:]
     @ObservationIgnored private var syncInFlight = false
     @ObservationIgnored private var syncPending = false
     @ObservationIgnored private var isStarted = false
@@ -69,12 +83,14 @@ final class MixerModel {
     /// Bumped per output device UID to rebuild its taps (after a sample-rate change).
     @ObservationIgnored private var deviceGenerations: [String: Int] = [:]
 
-    private enum Keys {
+    enum Keys {
         static let showRecentApps = "showRecentApps"
         static let showInputControls = "showInputControls"
         static let rememberVolumesPerDevice = "rememberVolumesPerDevice"
         static let hasCompletedOnboarding = "hasCompletedOnboarding"
         static let allowBoost = "allowVolumeBoost"
+        static let excludedApps = "excludedApps"
+        static let newAppVolume = "newAppVolume"
     }
 
     init(defaults: UserDefaults = .standard) {
@@ -85,6 +101,10 @@ final class MixerModel {
         rememberVolumesPerDevice = defaults.bool(forKey: Keys.rememberVolumesPerDevice)
         hasCompletedOnboarding = defaults.bool(forKey: Keys.hasCompletedOnboarding)
         allowBoost = defaults.bool(forKey: Keys.allowBoost)
+        excludedAppIDs = Set(defaults.stringArray(forKey: Keys.excludedApps) ?? [])
+        let newAppVolume = defaults.object(forKey: Keys.newAppVolume) as? Float ?? 1
+        self.newAppVolume = newAppVolume
+        store.newAppDefault = AppVolumeSetting(volume: newAppVolume)
         profileStore = ProfileStore(defaults: defaults)
         profiles = profileStore.profiles
         activeProfileID = profileStore.activeProfileID
@@ -162,7 +182,7 @@ final class MixerModel {
     }
 
     /// Changes an app's setting, applies it to the audio and saves it.
-    private func update(_ item: AppAudioItem, _ change: (inout AppVolumeSetting) -> Void) {
+    func update(_ item: AppAudioItem, _ change: (inout AppVolumeSetting) -> Void) {
         var setting = item.setting
         change(&setting)
         setting.volume = min(maxAppVolume, max(0, setting.volume))
@@ -210,75 +230,6 @@ final class MixerModel {
     func routedDevice(of item: AppAudioItem) -> AudioDevice? {
         guard let uid = item.routedDeviceUID else { return nil }
         return devices.outputs.first { $0.uid == uid }
-    }
-
-    // MARK: Profiles
-
-    var activeProfile: MixProfile? {
-        profiles.first { $0.id == activeProfileID }
-    }
-
-    /// Saves every app's current settings (running apps and remembered ones) as a profile.
-    func saveProfile(named name: String, includeOutputDevice: Bool) {
-        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-        var appSettings = store.allGeneralSettings
-        for item in apps {
-            appSettings[item.id] = item.setting
-        }
-        let profile = profileStore.save(MixProfile(
-            name: trimmed,
-            apps: appSettings,
-            outputDeviceUID: includeOutputDevice ? output.deviceUID : nil,
-            outputDeviceName: includeOutputDevice ? output.deviceName : nil
-        ))
-        profileStore.setActive(profile.id)
-        syncProfiles()
-    }
-
-    /// Applies a profile: apps it knows get its settings; apps it doesn't know go back to 100%.
-    func applyProfile(_ profile: MixProfile) {
-        for item in apps {
-            let setting = profile.apps[item.id] ?? .default
-            update(item) { $0 = setting }
-        }
-        for (appID, setting) in profile.apps where itemsByID[appID] == nil {
-            store.set(setting, for: appID)
-        }
-        if let uid = profile.outputDeviceUID, let device = devices.outputs.first(where: { $0.uid == uid }) {
-            select(device, for: .output)
-        }
-        if profileStore.profiles.contains(where: { $0.id == profile.id }) {
-            profileStore.setActive(profile.id)
-        }
-        syncProfiles()
-    }
-
-    /// Applies the profile after the active one (wrapping around), for a "next profile" shortcut.
-    func applyNextProfile() {
-        guard !profiles.isEmpty else { return }
-        let index = profiles.firstIndex { $0.id == activeProfileID }.map { ($0 + 1) % profiles.count } ?? 0
-        applyProfile(profiles[index])
-    }
-
-    func renameProfile(_ profile: MixProfile, to name: String) {
-        profileStore.rename(profile.id, to: name)
-        syncProfiles()
-    }
-
-    func deleteProfile(_ profile: MixProfile) {
-        profileStore.delete(profile.id)
-        syncProfiles()
-    }
-
-    func moveProfiles(fromOffsets source: IndexSet, toOffset destination: Int) {
-        profileStore.move(fromOffsets: source, toOffset: destination)
-        syncProfiles()
-    }
-
-    private func syncProfiles() {
-        profiles = profileStore.profiles
-        activeProfileID = profileStore.activeProfileID
     }
 
     // MARK: System events
@@ -340,7 +291,7 @@ final class MixerModel {
         var groups: [String: ProcessGroup] = [:]
         for process in processes where process.pid != ownPID {
             let app = resolver.resolve(pid: process.pid, bundleID: process.bundleID)
-            guard app.id != ownBundleID else { continue }
+            guard app.id != ownBundleID, !excludedAppIDs.contains(app.id) else { continue }
             var group = groups[app.id] ?? ProcessGroup(app: app)
             group.objectIDs.append(process.objectID)
             if process.isRunningOutput {
@@ -417,7 +368,7 @@ final class MixerModel {
 
     /// Sends the desired set of taps to the engine. Calls are serialized so an older plan can never
     /// overwrite a newer one.
-    private func requestEngineSync() {
+    func requestEngineSync() {
         syncPending = true
         guard !syncInFlight else { return }
         syncInFlight = true

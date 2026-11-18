@@ -29,7 +29,11 @@
 - 🔀 **Per-app routing.** Send calls to your headset and music to your speakers.
 - 🎛️ **10-band EQ per app** with presets.
 - 💾 **Profiles** such as Work, Gaming and Movie, switchable from the menu or with a shortcut.
-- ⌨️ **Keyboard shortcuts, Shortcuts/Siri actions and a Control Center control.**
+- ⌨️ **Global keyboard shortcuts** for the mixer, mute, volume and profiles.
+- 🖱️ **Scroll on the menu bar icon** to change the volume; Option-click it for devices and profiles.
+- 🗣️ **Shortcuts and Siri actions:** set an app's volume, mute an app, switch output, apply a profile.
+- 🎛️ **Control Center controls** on macOS 26: Mute Sound, Next Profile, Open Volume Rocker.
+- 🔄 **Automatic updates**, signed and verified, plus open at login.
 - 🪶 **Lightweight.** Under 1% CPU at idle and under 50 MB of memory. No drivers, no kernel extensions.
 - ♿ **Accessible.** Full VoiceOver and keyboard support, and it respects Reduce Motion and Reduce Transparency.
 
@@ -122,6 +126,7 @@ Quit it from the menu and drag it to the Trash. Settings live in `~/Library/Pref
 
 - [Sparkle](https://sparkle-project.org) for updates
 - [KeyboardShortcuts](https://github.com/sindresorhus/KeyboardShortcuts) by Sindre Sorhus
+- Equalizer filters from Robert Bristow-Johnson's *Audio EQ Cookbook*
 - Apple's [Capturing system audio with Core Audio taps](https://developer.apple.com/documentation/coreaudio/capturing-system-audio-with-core-audio-taps) sample
 
 ## License

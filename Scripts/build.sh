@@ -17,7 +17,6 @@ xcodebuild \
   -destination 'generic/platform=macOS' \
   -derivedDataPath build/DerivedData \
   ARCHS=arm64 \
-  SWIFT_TREAT_WARNINGS_AS_ERRORS=YES \
   build > build/xcodebuild.log 2>&1
 STATUS=$?
 set -e

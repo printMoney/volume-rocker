@@ -38,6 +38,8 @@ final class AppVolumeStore {
 
     private let defaults: UserDefaults
     private var settings: [String: AppVolumeSetting]
+    /// Setting for apps that have never been adjusted (Settings → Apps → default volume).
+    var newAppDefault = AppVolumeSetting.default
     private var saveScheduled = false
 
     init(defaults: UserDefaults = .standard) {
@@ -56,12 +58,17 @@ final class AppVolumeStore {
     /// Output routing is never per device: it always comes from the app's general setting. (Otherwise routing
     /// an app to another device would load that device's settings, which would route it somewhere else.)
     func setting(for appID: String, deviceUID: String? = nil) -> AppVolumeSetting {
-        let general = settings[appID] ?? .default
+        let general = settings[appID] ?? newAppDefault
         if let deviceUID, var deviceSetting = settings[Self.key(appID: appID, deviceUID: deviceUID)] {
             deviceSetting.outputDeviceUID = general.outputDeviceUID
             return deviceSetting
         }
         return general
+    }
+
+    /// Whether the app has a saved general setting (as opposed to using the new-app default).
+    func hasSetting(for appID: String) -> Bool {
+        settings[appID] != nil
     }
 
     func set(_ setting: AppVolumeSetting, for appID: String, deviceUID: String? = nil) {
@@ -70,12 +77,12 @@ final class AppVolumeStore {
             var deviceSetting = setting
             deviceSetting.outputDeviceUID = nil
             settings[Self.key(appID: appID, deviceUID: deviceUID)] = deviceSetting
-            var general = settings[appID] ?? .default
+            var general = settings[appID] ?? newAppDefault
             general.outputDeviceUID = setting.outputDeviceUID
-            settings[appID] = general == .default ? nil : general
+            settings[appID] = general == newAppDefault ? nil : general
         } else {
             // Apps left at the default don't need an entry.
-            settings[appID] = setting == .default ? nil : setting
+            settings[appID] = setting == newAppDefault ? nil : setting
         }
         scheduleSave()
     }

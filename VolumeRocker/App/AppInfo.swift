@@ -5,6 +5,7 @@ enum AppInfo {
     static let name = "Volume Rocker"
     static let repositoryURL = URL(string: "https://github.com/printMoney/volume-rocker")
     static let issuesURL = URL(string: "https://github.com/printMoney/volume-rocker/issues")
+    static let releasesURL = URL(string: "https://github.com/printMoney/volume-rocker/releases")
 
     /// The running app's version, e.g. "0.1.0 (1)".
     static var versionString: String {

@@ -1,43 +1,82 @@
+import KeyboardShortcuts
 import SwiftUI
 
-/// The native Settings window. More tabs (Apps, Shortcuts, Updates) arrive in Phase 4.
+/// The native Settings window.
 struct SettingsView: View {
     let model: MixerModel
+    let updates: UpdateController
+    let loginItem: LoginItem
 
     var body: some View {
         TabView {
             Tab("General", systemImage: "gearshape") {
-                GeneralSettingsView(model: model)
+                GeneralSettingsView(model: model, loginItem: loginItem)
+            }
+            Tab("Apps", systemImage: "square.grid.2x2") {
+                AppSettingsView(model: model)
             }
             Tab("Devices", systemImage: "hifispeaker.2") {
                 DeviceSettingsView(model: model)
             }
+            Tab("Shortcuts", systemImage: "keyboard") {
+                ShortcutSettingsView(model: model)
+            }
             Tab("Profiles", systemImage: "square.stack.3d.up") {
                 ProfileSettingsView(model: model)
+            }
+            Tab("Updates", systemImage: "arrow.down.circle") {
+                UpdateSettingsView(updates: updates)
             }
             Tab("About", systemImage: "info.circle") {
                 AboutSettingsView()
             }
         }
         .scenePadding()
-        .frame(width: 460)
+        .frame(width: 520)
     }
 }
 
+private struct SettingsFooter: View {
+    let text: Text
+
+    init(_ text: Text) {
+        self.text = text
+    }
+
+    var body: some View {
+        text
+            .font(.caption)
+            .foregroundStyle(.secondary)
+    }
+}
+
+// MARK: General
+
 private struct GeneralSettingsView: View {
     let model: MixerModel
+    let loginItem: LoginItem
 
     var body: some View {
         Form {
+            Section {
+                Toggle("Open at login", isOn: Binding(get: { loginItem.isEnabled }, set: { loginItem.setEnabled($0) }))
+                if loginItem.needsApproval {
+                    HStack {
+                        Text("Allow Volume Rocker in System Settings to finish.")
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Button("Open Login Items") { loginItem.openSystemSettings() }
+                    }
+                }
+            }
+
             Section {
                 Toggle("Show recent apps in the mixer", isOn: Binding(
                     get: { model.showRecentApps },
                     set: { model.showRecentApps = $0 }
                 ))
             } footer: {
-                Text("When off, only apps that are playing sound right now are shown.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                SettingsFooter(Text("When off, only apps that are playing sound right now are shown."))
             }
 
             Section {
@@ -46,9 +85,14 @@ private struct GeneralSettingsView: View {
                     set: { model.allowBoost = $0 }
                 ))
             } footer: {
-                Text("Makes quiet apps louder. A built-in limiter keeps boosted sound from distorting.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                SettingsFooter(Text("Makes quiet apps louder. A built-in limiter keeps boosted sound from distorting."))
+            }
+
+            Section {
+                LabeledContent("Scroll on the menu bar icon", value: String(localized: "Changes the output volume"))
+                LabeledContent("Option-click or right-click it", value: String(localized: "Shows devices and profiles"))
+            } header: {
+                Text("Menu Bar Icon")
             }
 
             Section("Permission") {
@@ -73,6 +117,71 @@ private struct GeneralSettingsView: View {
     }
 }
 
+// MARK: Apps
+
+private struct AppSettingsView: View {
+    let model: MixerModel
+
+    var body: some View {
+        Form {
+            Section {
+                LabeledContent("Volume for new apps") {
+                    HStack {
+                        Slider(
+                            value: Binding(get: { Double(model.newAppVolume) }, set: { model.newAppVolume = Float($0) }),
+                            in: 0 ... 1,
+                            step: 0.05
+                        ) {
+                            Text("Volume for new apps")
+                        }
+                        .labelsHidden()
+                        .frame(width: 180)
+                        Text(model.newAppVolume, format: .percent.precision(.fractionLength(0)))
+                            .monospacedDigit()
+                            .frame(width: 44, alignment: .trailing)
+                    }
+                }
+            } footer: {
+                SettingsFooter(Text("Used for apps you haven’t adjusted yet."))
+            }
+
+            Section {
+                if model.excludedAppIDs.isEmpty {
+                    Text("No excluded apps.")
+                        .foregroundStyle(.secondary)
+                }
+                ForEach(model.excludedAppIDs.sorted(), id: \.self) { appID in
+                    HStack {
+                        Text(model.appName(forID: appID))
+                        Text(appID)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Button("Remove") { model.include(appID: appID) }
+                    }
+                }
+                let candidates = model.apps.filter { !model.excludedAppIDs.contains($0.id) }
+                Menu("Exclude an App…") {
+                    ForEach(candidates) { item in
+                        Button(item.name) { model.exclude(appID: item.id) }
+                    }
+                }
+                .disabled(candidates.isEmpty)
+            } header: {
+                Text("Excluded Apps")
+            } footer: {
+                SettingsFooter(Text("""
+                Volume Rocker leaves excluded apps completely alone: they aren’t shown and their sound is never \
+                touched. Useful for pro audio apps or anything that should bypass the mixer.
+                """))
+            }
+        }
+        .formStyle(.grouped)
+    }
+}
+
+// MARK: Devices
+
 private struct DeviceSettingsView: View {
     let model: MixerModel
 
@@ -84,12 +193,10 @@ private struct DeviceSettingsView: View {
                     set: { model.rememberVolumesPerDevice = $0 }
                 ))
             } footer: {
-                Text("""
+                SettingsFooter(Text("""
                 For example, keep music quieter on your speakers than on your headphones. \
                 Volumes switch automatically with the output device.
-                """)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                """))
             }
 
             Section {
@@ -98,14 +205,54 @@ private struct DeviceSettingsView: View {
                     set: { model.showInputControls = $0 }
                 ))
             } footer: {
-                Text("Switch the microphone and change its input volume from the menu bar. This does not record audio.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                SettingsFooter(Text("Switch the microphone and change its input volume from the menu bar. This does not record audio."))
             }
         }
         .formStyle(.grouped)
     }
 }
+
+// MARK: Shortcuts
+
+private struct ShortcutSettingsView: View {
+    let model: MixerModel
+
+    var body: some View {
+        Form {
+            Section {
+                KeyboardShortcuts.Recorder("Open or close the mixer", name: .toggleMixer)
+                KeyboardShortcuts.Recorder("Mute or unmute output", name: .toggleOutputMute)
+                KeyboardShortcuts.Recorder("Output volume up", name: .outputVolumeUp)
+                KeyboardShortcuts.Recorder("Output volume down", name: .outputVolumeDown)
+                KeyboardShortcuts.Recorder("Next profile", name: .nextProfile)
+            } footer: {
+                SettingsFooter(Text("Shortcuts work in every app."))
+            }
+
+            if !model.profiles.isEmpty {
+                Section("Profiles") {
+                    ForEach(model.profiles) { profile in
+                        KeyboardShortcuts.Recorder(profile.name, name: .profile(profile.id))
+                    }
+                }
+            }
+
+            Section {
+                Text("""
+                Volume Rocker’s actions are also in the Shortcuts app: set an app’s volume, mute an app, \
+                switch the output device, set the output volume and apply a profile. Ask Siri, for example, \
+                “Apply Work in Volume Rocker”.
+                """)
+                .foregroundStyle(.secondary)
+            } header: {
+                Text("Shortcuts App and Siri")
+            }
+        }
+        .formStyle(.grouped)
+    }
+}
+
+// MARK: Profiles
 
 private struct ProfileSettingsView: View {
     let model: MixerModel
@@ -124,9 +271,10 @@ private struct ProfileSettingsView: View {
             } header: {
                 Text("Profiles")
             } footer: {
-                Text("A profile saves each app’s volume, mute, equalizer and output device. Apps a profile doesn’t know go back to 100%.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                SettingsFooter(Text("""
+                A profile saves each app’s volume, mute, equalizer and output device. \
+                Apps a profile doesn’t know go back to 100%. Give profiles keyboard shortcuts in the Shortcuts tab.
+                """))
             }
         }
         .formStyle(.grouped)
@@ -169,6 +317,47 @@ private struct ProfileRow: View {
     }
 }
 
+// MARK: Updates
+
+private struct UpdateSettingsView: View {
+    let updates: UpdateController
+
+    var body: some View {
+        Form {
+            if updates.isConfigured {
+                Section {
+                    Toggle("Check for updates automatically", isOn: Binding(
+                        get: { updates.automaticallyChecksForUpdates },
+                        set: { updates.automaticallyChecksForUpdates = $0 }
+                    ))
+                    LabeledContent("Last checked") {
+                        if let date = updates.lastUpdateCheckDate {
+                            Text(date, format: .relative(presentation: .named))
+                        } else {
+                            Text("Never")
+                        }
+                    }
+                    Button("Check for Updates Now") { updates.checkForUpdates() }
+                } footer: {
+                    SettingsFooter(Text("Updates are downloaded from GitHub and verified with a digital signature before installing."))
+                }
+            } else {
+                Section {
+                    Text("Automatic updates aren’t set up in this build.")
+                    if let url = AppInfo.releasesURL {
+                        Link("See Releases on GitHub", destination: url)
+                    }
+                } footer: {
+                    SettingsFooter(Text("This is normal for builds made from source. Official releases update automatically."))
+                }
+            }
+        }
+        .formStyle(.grouped)
+    }
+}
+
+// MARK: About
+
 private struct AboutSettingsView: View {
     var body: some View {
         VStack(spacing: 8) {
@@ -182,9 +371,18 @@ private struct AboutSettingsView: View {
                 .foregroundStyle(.secondary)
                 .textSelection(.enabled)
             Text("Per-app volume control for your Mac.")
-            if let url = AppInfo.repositoryURL {
-                Link("View on GitHub", destination: url)
+            HStack(spacing: 16) {
+                if let url = AppInfo.repositoryURL {
+                    Link("GitHub", destination: url)
+                }
+                if let url = AppInfo.issuesURL {
+                    Link("Report a Problem", destination: url)
+                }
             }
+            Text("Free and open source under the MIT License.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.top, 4)
         }
         .frame(maxWidth: .infinity)
         .padding()

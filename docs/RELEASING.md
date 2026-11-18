@@ -41,11 +41,18 @@ Add these at **GitHub → your repo → Settings → Secrets and variables → A
 | `NOTARY_KEY_ID` | The key's ID | Shown next to the key, e.g. `ABC123DEFG` |
 | `NOTARY_ISSUER_ID` | Your issuer ID | Shown at the top of the same page (a UUID) |
 
-### Sparkle updates (Phase 4)
+### Sparkle updates
 
-| Secret | What it is | How to get it |
-| --- | --- | --- |
-| `SPARKLE_PRIVATE_KEY` | EdDSA private key that signs updates | Run Sparkle's `generate_keys` once (instructions arrive with Phase 4), then `generate_keys -x sparkle_private_key` and paste the file's contents. **Back it up in your password manager.** If you lose it, existing users can't receive updates. |
+Updates are signed with an EdDSA key pair. You create it **once**, on your Mac:
+
+1. Download Sparkle 2.10.1 from [its releases page](https://github.com/sparkle-project/Sparkle/releases/tag/2.10.1) (`Sparkle-2.10.1.tar.xz`) and double-click to unpack it.
+2. In Terminal, run `bin/generate_keys` from the unpacked folder. It stores the private key in your login keychain and prints the **public key** (44 characters ending in `=`).
+3. Put the public key into `VolumeRocker/Resources/Info.plist` as the value of `SUPublicEDKey`, and commit. Until you do, the app shows "Automatic updates aren't set up in this build" in Settings → Updates.
+4. Export the private key for GitHub with `bin/generate_keys -x sparkle_private_key`, then add the file's contents as the secret below. Delete the exported file afterwards; it stays safe in your keychain.
+
+| Secret | What it is |
+| --- | --- |
+| `SPARKLE_PRIVATE_KEY` | The exported EdDSA private key that signs updates. **Back it up in your password manager.** If you lose it, existing users can't receive updates any more. |
 
 Also turn on **GitHub Pages** (Settings → Pages → deploy from branch `gh-pages`, root) so the appcast is served at `https://printmoney.github.io/volume-rocker/appcast.xml`.
 

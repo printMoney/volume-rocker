@@ -89,8 +89,20 @@ final class AudioDeviceList {
 
     // MARK: Switching
 
-    /// Makes `device` the system default for `direction`, exactly as choosing it in Control Center does.
     func makeDefault(_ device: AudioDevice, for direction: AudioDirection) {
+        Self.makeDefault(device, for: direction)
+    }
+
+    /// Output devices right now, without starting a live list (for Shortcuts actions).
+    nonisolated static func currentOutputs() -> [AudioDevice] {
+        let ids = (try? AudioObjectID.system.readArray(
+            AudioObjectPropertyAddress(kAudioHardwarePropertyDevices), of: AudioDeviceID.self
+        )) ?? []
+        return sorted(ids.compactMap(AudioDevice.read).filter(\.hasOutput))
+    }
+
+    /// Makes `device` the system default for `direction`, exactly as choosing it in Control Center does.
+    nonisolated static func makeDefault(_ device: AudioDevice, for direction: AudioDirection) {
         let systemOutputAddress = AudioObjectPropertyAddress(kAudioHardwarePropertyDefaultSystemOutputDevice)
         let alertsFollowedDefault = direction == .output
             && (try? AudioObjectID.system.read(systemOutputAddress, default: AudioDeviceID.unknown))

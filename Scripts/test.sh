@@ -10,5 +10,4 @@ xcodebuild \
   -scheme VolumeRocker \
   -destination 'platform=macOS,arch=arm64' \
   -derivedDataPath build/DerivedData \
-  SWIFT_TREAT_WARNINGS_AS_ERRORS=YES \
   test

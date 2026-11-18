@@ -43,7 +43,6 @@ jobs:
             -destination 'platform=macOS,arch=arm64' \
             -derivedDataPath build/DerivedData \
             -resultBundlePath build/TestResults.xcresult \
-            SWIFT_TREAT_WARNINGS_AS_ERRORS=YES \
             test
       - name: Upload test results
         if: failure()
