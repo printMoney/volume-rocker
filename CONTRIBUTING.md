@@ -8,6 +8,8 @@ Thanks for your interest! Bug reports, ideas, translations and code are all welc
 2. Fork and clone the repo, then run `xcodegen generate` and open `VolumeRocker.xcodeproj`.
 3. Read [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), especially the real-time rules.
 
+Local builds made with `Scripts/build.sh` + `Scripts/sign.sh` are ad-hoc signed with a requirement based on the bundle identifier, so macOS keeps the System Audio Recording permission across rebuilds. (Builds run from Xcode get a new signature each time and may ask for the permission again.)
+
 The `.xcodeproj` is generated from `project.yml` and is not committed. If you add files or change build settings, edit `project.yml` and re-run `xcodegen generate`.
 
 ## Before opening a pull request

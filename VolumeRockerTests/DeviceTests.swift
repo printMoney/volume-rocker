@@ -94,3 +94,24 @@ struct TapRequestGenerationTests {
         #expect(first != second)
     }
 }
+
+struct AggregateDescriptionTests {
+    private let description = TapSession.aggregateDescription(
+        name: "Test", outputDeviceUID: "speaker-uid", tapUUID: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
+    )
+
+    /// Regression test: without maximum quality, 48 kHz taps on 44.1 kHz Bluetooth headphones sounded distorted.
+    @Test func requestsBestRateConversionQualityForTap() throws {
+        let taps = try #require(description[kAudioAggregateDeviceTapListKey] as? [[String: Any]])
+        let tap = try #require(taps.first)
+        #expect(tap[kAudioSubTapDriftCompensationKey] as? Bool == true)
+        #expect(tap[kAudioSubTapDriftCompensationQualityKey] as? UInt32 == kAudioAggregateDriftCompensationMaxQuality)
+        #expect(tap[kAudioSubTapUIDKey] as? String == "00000000-0000-0000-0000-000000000001")
+    }
+
+    @Test func isPrivateAndUsesOutputDeviceAsMain() {
+        #expect(description[kAudioAggregateDeviceIsPrivateKey] as? Bool == true)
+        #expect(description[kAudioAggregateDeviceMainSubDeviceKey] as? String == "speaker-uid")
+        #expect((description[kAudioAggregateDeviceUIDKey] as? String)?.hasPrefix(AudioEngine.aggregateUIDPrefix) == true)
+    }
+}

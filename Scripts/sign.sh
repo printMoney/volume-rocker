@@ -17,6 +17,11 @@ if [[ -n "${DEVELOPER_ID:-}" ]]; then
   codesign --force --options runtime --timestamp --sign "$DEVELOPER_ID" "$APP"
 else
   echo "DEVELOPER_ID not set: ad-hoc signing (fine for testing, not for distribution)."
-  codesign --force --deep --options runtime --sign - "$APP"
+  # An ad-hoc signature changes with every build, so macOS would forget the System Audio Recording
+  # permission each time. Requiring only the bundle identifier keeps local test builds recognized as the
+  # same app. Release builds are signed with Developer ID above and get Apple's normal requirement.
+  BUNDLE_ID=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP/Contents/Info.plist")
+  codesign --force --deep --options runtime --sign - \
+    --requirements "=designated => identifier \"$BUNDLE_ID\"" "$APP"
 fi
 codesign --verify --deep --strict --verbose=2 "$APP"

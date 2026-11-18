@@ -62,7 +62,7 @@ actor AudioEngine {
 }
 
 /// One app's tap, its private aggregate device and the running IOProc.
-private final class TapSession {
+final class TapSession {
     let request: TapRequest
     private var tapID = AudioObjectID.unknown
     private var aggregateID = AudioObjectID.unknown
@@ -92,20 +92,11 @@ private final class TapSession {
         try check(AudioHardwareCreateProcessTap(description, &tapID), "Create process tap")
 
         // 2. A private aggregate device = the real output device + the tap.
-        let tapEntry: [String: Any] = [
-            kAudioSubTapDriftCompensationKey: true,
-            kAudioSubTapUIDKey: description.uuid.uuidString,
-        ]
-        let aggregate: [String: Any] = [
-            kAudioAggregateDeviceNameKey: "Volume Rocker \(request.key)",
-            kAudioAggregateDeviceUIDKey: AudioEngine.aggregateUIDPrefix + UUID().uuidString,
-            kAudioAggregateDeviceMainSubDeviceKey: request.outputDeviceUID,
-            kAudioAggregateDeviceIsPrivateKey: true,
-            kAudioAggregateDeviceIsStackedKey: false,
-            kAudioAggregateDeviceTapAutoStartKey: true,
-            kAudioAggregateDeviceSubDeviceListKey: [[kAudioSubDeviceUIDKey: request.outputDeviceUID]],
-            kAudioAggregateDeviceTapListKey: [tapEntry],
-        ]
+        let aggregate = Self.aggregateDescription(
+            name: "Volume Rocker \(request.key)",
+            outputDeviceUID: request.outputDeviceUID,
+            tapUUID: description.uuid
+        )
         try check(AudioHardwareCreateAggregateDevice(aggregate as CFDictionary, &aggregateID), "Create aggregate device")
 
         // 3. The real-time callback. It captures only an unretained pointer, so calling it causes no
@@ -120,6 +111,38 @@ private final class TapSession {
 
         disableOutputDeviceInputs()
         try check(AudioDeviceStart(aggregateID, ioProcID), "Start audio device")
+        logFormat()
+    }
+
+    private func logFormat() {
+        let tapFormat = (try? tapID.read(
+            AudioObjectPropertyAddress(kAudioTapPropertyFormat), default: AudioStreamBasicDescription()
+        )) ?? AudioStreamBasicDescription()
+        let message = "Tap \(request.key): \(Int(tapFormat.mSampleRate)) Hz → device \(Int(aggregateID.nominalSampleRate())) Hz"
+        Log.engine.info("\(message, privacy: .public)")
+    }
+
+    /// The aggregate device: the real output device plus the tap.
+    ///
+    /// Taps always deliver 48 kHz audio. On devices running at another rate (e.g. 44.1 kHz Bluetooth headphones)
+    /// the aggregate's drift compensation converts the rate. Without an explicit quality it uses a low-quality
+    /// converter, which is audible as distortion, so the best quality is requested.
+    static func aggregateDescription(name: String, outputDeviceUID: String, tapUUID: UUID) -> [String: Any] {
+        let tapEntry: [String: Any] = [
+            kAudioSubTapDriftCompensationKey: true,
+            kAudioSubTapDriftCompensationQualityKey: kAudioAggregateDriftCompensationMaxQuality,
+            kAudioSubTapUIDKey: tapUUID.uuidString,
+        ]
+        return [
+            kAudioAggregateDeviceNameKey: name,
+            kAudioAggregateDeviceUIDKey: AudioEngine.aggregateUIDPrefix + UUID().uuidString,
+            kAudioAggregateDeviceMainSubDeviceKey: outputDeviceUID,
+            kAudioAggregateDeviceIsPrivateKey: true,
+            kAudioAggregateDeviceIsStackedKey: false,
+            kAudioAggregateDeviceTapAutoStartKey: true,
+            kAudioAggregateDeviceSubDeviceListKey: [[kAudioSubDeviceUIDKey: outputDeviceUID]],
+            kAudioAggregateDeviceTapListKey: [tapEntry],
+        ]
     }
 
     /// If the output device also has inputs (e.g. AirPods' microphone), tell Core Audio our IOProc doesn't

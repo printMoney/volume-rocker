@@ -5,6 +5,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Fixed
+
+- Distorted audio on Bluetooth headphones and other devices that don't run at 48 kHz. Sample-rate conversion now uses the best quality.
+
 ### Added
 
 - **One-click output device switching** in the panel (built-in, Bluetooth/AirPods, HDMI, DisplayPort, USB, AirPlay), with device icons like Control Center.
