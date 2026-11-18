@@ -110,6 +110,7 @@ final class TapSession {
         )
 
         disableOutputDeviceInputs()
+        request.renderState.setSampleRate(aggregateID.nominalSampleRate())
         try check(AudioDeviceStart(aggregateID, ioProcID), "Start audio device")
         logFormat()
     }

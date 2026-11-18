@@ -41,12 +41,14 @@ Notes: each app gets its own private aggregate device (see docs/ARCHITECTURE.md 
 
 Notes: AirPlay receivers appear through macOS's single "AirPlay" device; choosing a specific receiver still happens in Control Center.
 
-## Phase 3: Power features ⬜
+## Phase 3: Power features ✅
 
-- ⬜ Per-app boost up to 200% with a soft limiter
-- ⬜ Per-app output routing
-- ⬜ Per-app 10-band EQ with presets (vDSP biquads)
-- ⬜ Profiles ("Work", "Gaming", "Movie", …)
+- ✅ Per-app boost up to 200% with a soft limiter
+- ✅ Per-app output routing
+- ✅ Per-app 10-band EQ with presets (vDSP biquads)
+- ✅ Profiles ("Work", "Gaming", "Movie", …)
+
+Notes: keyboard shortcuts for profiles arrive with the other shortcuts in Phase 4.
 
 ## Phase 4: Integration and quality of life ⬜
 

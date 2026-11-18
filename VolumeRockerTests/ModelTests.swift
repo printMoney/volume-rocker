@@ -105,8 +105,10 @@ struct AppAudioItemTests {
         item.apply(AppVolumeSetting(volume: 0.4, isMuted: true))
         #expect(item.renderState.targetGain == 0)
         item.apply(AppVolumeSetting(volume: 1.5, isMuted: false))
-        #expect(item.volume == 1)
-        #expect(item.renderState.targetGain == 1)
+        #expect(item.renderState.targetGain == 1.5)
+        item.apply(AppVolumeSetting(volume: 3, isMuted: false))
+        #expect(item.volume == 2)
+        #expect(item.renderState.targetGain == 2)
     }
 
     @Test func keepsTapDuringGracePeriodAfterPlaying() {

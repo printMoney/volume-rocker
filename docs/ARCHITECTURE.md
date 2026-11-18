@@ -24,9 +24,9 @@ flowchart LR
     A1 -- tap --> T1((Tap))
     A2 -- tap --> T2((Tap))
     A3 -- tap --> T3((Tap))
-    T1 --> IO1[Aggregate + IOProc<br/>gain · meter]
-    T2 --> IO2[Aggregate + IOProc<br/>gain · meter]
-    T3 --> IO3[Aggregate + IOProc<br/>gain · meter]
+    T1 --> IO1[Aggregate + IOProc<br/>EQ · gain · limiter · meter]
+    T2 --> IO2[Aggregate + IOProc<br/>EQ · gain · limiter · meter]
+    T3 --> IO3[Aggregate + IOProc<br/>EQ · gain · limiter · meter]
     IO1 & IO2 & IO3 --> OUT[Output device<br/>Speakers / AirPods / HDMI<br/>macOS mixes the streams]
     UI[Mixer UI<br/>MainActor] -- "Atomic gain<br/>(lock-free)" --> IO1 & IO2 & IO3
     IO1 & IO2 & IO3 -- "Atomic peak levels" --> UI
@@ -62,6 +62,17 @@ Instead:
 - **Pre-allocated buffers:** scratch buffers are sized when the aggregate device starts and when the sample rate or buffer size changes, never inside the callback.
 - **Math with Accelerate:** gain, mixing, metering and biquad EQ all use vDSP.
 
+## The render pipeline
+
+Each IOProc call runs one buffer (normally 512 frames) through `TapRenderState.render`:
+
+1. **Load:** copy the tap's left/right channels into a stereo scratch buffer that was allocated up front.
+2. **EQ:** ten peaking biquads (RBJ cookbook, one octave wide, ±12 dB) via `vDSP_biquadm`. New coefficients arrive through a **lock-free triple buffer**: the main thread writes a spare set and swaps an atomic index, and the audio thread picks the new set up at the start of the next buffer. Neither side ever waits. The filters run only after an EQ has been set once.
+3. **Gain:** a linear ramp from the previous gain to the new one across the buffer (`vDSP_vrampmul`), 0–200%.
+4. **Limiter:** because the whole buffer is available before it is played, the limiter measures its peak first, then applies a gain that keeps every sample under −0.1 dBFS. It reduces instantly and releases over about 250 ms. Boosted or EQ'd audio therefore can never clip.
+5. **Meter:** the buffer's peak goes into an atomic for the UI.
+6. **Write:** left/right go to the device's first two channels, interleaved or not.
+
 ## How the pieces talk
 
 The engine is **declarative**. Whenever anything changes (an app starts or stops playing, the permission changes, the output device changes), `MixerModel` builds the complete list of taps that *should* exist (`[TapRequest]`) and hands it to the `AudioEngine` actor. The engine compares it with what is running, then stops, starts or restarts sessions to match. Calls are serialized, so an older list can never overwrite a newer one. Slow Core Audio setup calls run on the actor, never on the main thread.
@@ -76,6 +87,7 @@ Volume changes don't go through the engine at all. The slider writes the new gai
 - **There is no public API to check the System Audio Recording permission.** Without the permission, a tap still "works" but delivers silence while muting the app, which would silence the user's apps. Volume Rocker therefore checks it through the TCC framework's `TCCAccessPreflight`/`TCCAccessRequest`, loaded dynamically (the same approach as the well-known AudioCap sample). If those functions disappear, the app falls back to the system prompt.
 - **Helper processes.** Browsers play sound from helper processes. Chrome's helpers live inside `Google Chrome.app`, so the outermost `.app` in the executable path identifies the app. Safari's audio comes from WebKit's GPU process, which lives outside Safari. For that case macOS's "responsible process" (looked up with `responsibility_get_pid_responsible_for_pid`, also loaded dynamically) points back to Safari.
 - **Taps always deliver 48 kHz.** The tap's format is 48 kHz stereo even when the app plays to a 44.1 kHz device, and pinning the tap to a device (`CATapDescription.deviceUID`) doesn't change that. The aggregate device's drift compensation converts the rate, and the IOProc receives equal frame counts for input and output. But a tap entry without an explicit `kAudioSubTapDriftCompensationQualityKey` uses a low-quality converter, which was audible as distortion on 44.1 kHz Bluetooth headphones. Volume Rocker requests `kAudioAggregateDriftCompensationMaxQuality`, at about 1% CPU per playing app.
+- **Hidden menu bar panels keep animating.** A `MenuBarExtra` window stays alive while closed, and SwiftUI keeps `TimelineView` animations running in it. The level meters therefore pause based on the panel window's occlusion state (`NSWindow.didChangeOcclusionStateNotification`). Without this, the closed panel used about 20% CPU while audio played.
 - **Headsets with microphones.** An aggregate device built on AirPods also contains their microphone, which could switch Bluetooth into low-quality call mode. The engine marks those input streams as unused for its IOProc (`kAudioDevicePropertyIOProcStreamUsage`).
 
 ## Lifecycle and robustness
@@ -86,6 +98,8 @@ Volume changes don't go through the engine at all. The slider writes the new gai
 - **Sample-rate changes:** `AudioDeviceList` watches each output device's nominal sample rate. When one changes, the taps on that device are rebuilt by bumping a per-device *generation* number in their `TapRequest`s.
 - **Sleep/wake:** on `NSWorkspace.willSleepNotification` every tap is released, so apps play normally and devices can sleep. Two seconds after wake (so Bluetooth can reconnect), the global generation is bumped and all taps are rebuilt.
 - **Core Audio restarts:** if `coreaudiod` restarts (`kAudioHardwarePropertyServiceRestarted`), every object ID is stale, so all monitors, controllers and taps start over.
+- **Per-app routing:** an app with a chosen output device gets its aggregate device built on that device instead of its own. If the device disconnects, the app falls back to its own device, then returns when the device reconnects. Routing is stored once per app, never per device.
+- **Profiles:** a profile is a snapshot of every app's settings, plus optionally the output device. Applying it sets known apps and resets the others to 100%.
 - **Per-device memory (optional):** with "Remember app volumes for each output device" on, settings are stored as `"<device UID>|<bundle ID>"`. A new device starts from the app's general setting.
 - **Crash safety:** private aggregate devices and taps belong to the Volume Rocker process. If it crashes or quits, macOS removes them and the apps play normally again, so audio is never left silent.
 

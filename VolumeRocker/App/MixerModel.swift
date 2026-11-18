@@ -28,6 +28,22 @@ final class MixerModel {
     }
 
     /// Remember different app volumes for each output device (e.g. headphones vs. speakers).
+    /// Lets app sliders go up to 200%. Turning it off brings boosted apps back to 100%.
+    var allowBoost: Bool {
+        didSet {
+            defaults.set(allowBoost, forKey: Keys.allowBoost)
+            if !allowBoost {
+                for item in apps where item.volume > 1 {
+                    update(item) { $0.volume = 1 }
+                }
+            }
+        }
+    }
+
+    /// Saved mixes, and the one applied last.
+    private(set) var profiles: [MixProfile] = []
+    private(set) var activeProfileID: UUID?
+
     var rememberVolumesPerDevice: Bool {
         didSet {
             defaults.set(rememberVolumesPerDevice, forKey: Keys.rememberVolumesPerDevice)
@@ -37,6 +53,7 @@ final class MixerModel {
 
     @ObservationIgnored private let defaults: UserDefaults
     @ObservationIgnored private let store: AppVolumeStore
+    @ObservationIgnored private let profileStore: ProfileStore
     @ObservationIgnored private let monitor = AudioProcessMonitor()
     @ObservationIgnored private let resolver = AppResolver()
     @ObservationIgnored private let engine = AudioEngine()
@@ -57,6 +74,7 @@ final class MixerModel {
         static let showInputControls = "showInputControls"
         static let rememberVolumesPerDevice = "rememberVolumesPerDevice"
         static let hasCompletedOnboarding = "hasCompletedOnboarding"
+        static let allowBoost = "allowVolumeBoost"
     }
 
     init(defaults: UserDefaults = .standard) {
@@ -66,6 +84,10 @@ final class MixerModel {
         showInputControls = defaults.object(forKey: Keys.showInputControls) as? Bool ?? true
         rememberVolumesPerDevice = defaults.bool(forKey: Keys.rememberVolumesPerDevice)
         hasCompletedOnboarding = defaults.bool(forKey: Keys.hasCompletedOnboarding)
+        allowBoost = defaults.bool(forKey: Keys.allowBoost)
+        profileStore = ProfileStore(defaults: defaults)
+        profiles = profileStore.profiles
+        activeProfileID = profileStore.activeProfileID
     }
 
     // MARK: Derived state
@@ -134,25 +156,129 @@ final class MixerModel {
 
     // MARK: User actions
 
-    func setVolume(_ volume: Float, for item: AppAudioItem) {
+    /// Highest volume an app slider can reach.
+    var maxAppVolume: Float {
+        allowBoost ? TapRenderState.maxGain : 1
+    }
+
+    /// Changes an app's setting, applies it to the audio and saves it.
+    private func update(_ item: AppAudioItem, _ change: (inout AppVolumeSetting) -> Void) {
         var setting = item.setting
-        setting.volume = min(1, max(0, volume))
-        if setting.volume > 0 {
-            setting.isMuted = false
-        }
+        change(&setting)
+        setting.volume = min(maxAppVolume, max(0, setting.volume))
+        let routingChanged = setting.outputDeviceUID != item.routedDeviceUID
         item.apply(setting)
         store.set(setting, for: item.id, deviceUID: item.settingsDeviceUID)
+        if routingChanged {
+            refreshSettingsScope(of: item)
+            requestEngineSync()
+        }
+    }
+
+    func setVolume(_ volume: Float, for item: AppAudioItem) {
+        update(item) { setting in
+            setting.volume = volume
+            if volume > 0 {
+                setting.isMuted = false
+            }
+        }
     }
 
     func toggleMute(_ item: AppAudioItem) {
-        var setting = item.setting
-        setting.isMuted.toggle()
-        item.apply(setting)
-        store.set(setting, for: item.id, deviceUID: item.settingsDeviceUID)
+        update(item) { $0.isMuted.toggle() }
+    }
+
+    func setEqualizer(_ gains: [Float]?, for item: AppAudioItem) {
+        update(item) { $0.equalizer = Equalizer.isFlat(gains) ? nil : gains }
+    }
+
+    /// Sends an app to a specific output device, or back to wherever it plays by itself (nil).
+    func route(_ item: AppAudioItem, to deviceUID: String?) {
+        update(item) { $0.outputDeviceUID = deviceUID }
+    }
+
+    /// Volume 100%, unmuted, flat EQ, no routing.
+    func reset(_ item: AppAudioItem) {
+        update(item) { $0 = .default }
     }
 
     func select(_ device: AudioDevice, for direction: AudioDirection) {
         devices.makeDefault(device, for: direction)
+    }
+
+    /// Name of the device an app is routed to, if that device is connected.
+    func routedDevice(of item: AppAudioItem) -> AudioDevice? {
+        guard let uid = item.routedDeviceUID else { return nil }
+        return devices.outputs.first { $0.uid == uid }
+    }
+
+    // MARK: Profiles
+
+    var activeProfile: MixProfile? {
+        profiles.first { $0.id == activeProfileID }
+    }
+
+    /// Saves every app's current settings (running apps and remembered ones) as a profile.
+    func saveProfile(named name: String, includeOutputDevice: Bool) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        var appSettings = store.allGeneralSettings
+        for item in apps {
+            appSettings[item.id] = item.setting
+        }
+        let profile = profileStore.save(MixProfile(
+            name: trimmed,
+            apps: appSettings,
+            outputDeviceUID: includeOutputDevice ? output.deviceUID : nil,
+            outputDeviceName: includeOutputDevice ? output.deviceName : nil
+        ))
+        profileStore.setActive(profile.id)
+        syncProfiles()
+    }
+
+    /// Applies a profile: apps it knows get its settings; apps it doesn't know go back to 100%.
+    func applyProfile(_ profile: MixProfile) {
+        for item in apps {
+            let setting = profile.apps[item.id] ?? .default
+            update(item) { $0 = setting }
+        }
+        for (appID, setting) in profile.apps where itemsByID[appID] == nil {
+            store.set(setting, for: appID)
+        }
+        if let uid = profile.outputDeviceUID, let device = devices.outputs.first(where: { $0.uid == uid }) {
+            select(device, for: .output)
+        }
+        if profileStore.profiles.contains(where: { $0.id == profile.id }) {
+            profileStore.setActive(profile.id)
+        }
+        syncProfiles()
+    }
+
+    /// Applies the profile after the active one (wrapping around), for a "next profile" shortcut.
+    func applyNextProfile() {
+        guard !profiles.isEmpty else { return }
+        let index = profiles.firstIndex { $0.id == activeProfileID }.map { ($0 + 1) % profiles.count } ?? 0
+        applyProfile(profiles[index])
+    }
+
+    func renameProfile(_ profile: MixProfile, to name: String) {
+        profileStore.rename(profile.id, to: name)
+        syncProfiles()
+    }
+
+    func deleteProfile(_ profile: MixProfile) {
+        profileStore.delete(profile.id)
+        syncProfiles()
+    }
+
+    func moveProfiles(fromOffsets source: IndexSet, toOffset destination: Int) {
+        profileStore.move(fromOffsets: source, toOffset: destination)
+        syncProfiles()
+    }
+
+    private func syncProfiles() {
+        profiles = profileStore.profiles
+        activeProfileID = profileStore.activeProfileID
     }
 
     // MARK: System events
@@ -280,6 +406,7 @@ final class MixerModel {
 
     /// With per-device memory on, applies the app's saved setting for the device it is playing on.
     private func refreshSettingsScope(of item: AppAudioItem) {
+        // Per-device memory follows the device the app itself plays on, not where it is routed.
         let deviceUID = rememberVolumesPerDevice ? resolveOutputDevice(item.outputDeviceID).uid : nil
         guard deviceUID != item.settingsDeviceUID else { return }
         item.settingsDeviceUID = deviceUID
@@ -306,9 +433,10 @@ final class MixerModel {
     private func makeTapRequests() -> [TapRequest] {
         guard canControlApps, !isSuspended, output.deviceID.isValid else { return [] }
         let now = Date()
-        return apps.compactMap { item in
+        return apps.compactMap { item -> TapRequest? in
             guard item.needsTap(at: now, grace: Self.idleGrace), !item.processObjectIDs.isEmpty else { return nil }
-            let device = resolveOutputDevice(item.outputDeviceID)
+            let device: (id: AudioDeviceID, uid: String) = routedDevice(of: item).map { ($0.id, $0.uid) }
+                ?? resolveOutputDevice(item.outputDeviceID)
             guard device.id.isValid else { return nil }
             var request = TapRequest(
                 key: item.id,

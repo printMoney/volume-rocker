@@ -6,6 +6,7 @@ struct MixerPanelView: View {
 
     @Environment(\.openSettings) private var openSettings
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var isSavingProfile = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -34,12 +35,19 @@ struct MixerPanelView: View {
 
             Divider()
 
+            if isSavingProfile {
+                SaveProfileView(model: model, isPresented: $isSavingProfile)
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+            }
+
             footer
         }
         .padding(14)
         .frame(width: 340)
+        .trackingWindowVisibility()
         .animation(reduceMotion ? nil : .spring(duration: 0.35, bounce: 0.1), value: model.visibleApps.map(\.id))
         .animation(reduceMotion ? nil : .default, value: model.canControlApps)
+        .animation(reduceMotion ? nil : .spring(duration: 0.3), value: isSavingProfile)
     }
 
     private var appsSection: some View {
@@ -65,6 +73,41 @@ struct MixerPanelView: View {
         }
     }
 
+    private var profilesMenu: some View {
+        Menu {
+            if model.profiles.isEmpty {
+                Text("No Profiles Yet")
+            }
+            ForEach(model.profiles) { profile in
+                Button {
+                    model.applyProfile(profile)
+                } label: {
+                    if profile.id == model.activeProfileID {
+                        Label(profile.name, systemImage: "checkmark")
+                    } else {
+                        Text(profile.name)
+                    }
+                }
+            }
+            Divider()
+            Button("Save Current Mix…") { isSavingProfile = true }
+            if !model.profiles.isEmpty {
+                Button("Manage Profiles…") {
+                    NSApp.activate()
+                    openSettings()
+                }
+            }
+        } label: {
+            Image(systemName: "square.stack.3d.up")
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .help(model.activeProfile.map { Text("Profile: \($0.name)") } ?? Text("Profiles"))
+        .accessibilityLabel(Text("Profiles"))
+        .accessibilityValue(model.activeProfile.map { Text($0.name) } ?? Text("None"))
+    }
+
     private var footer: some View {
         HStack(spacing: 12) {
             Toggle("Show Recent Apps", isOn: Binding(
@@ -75,6 +118,8 @@ struct MixerPanelView: View {
             .controlSize(.small)
 
             Spacer()
+
+            profilesMenu
 
             Button {
                 NSApp.activate()
@@ -153,5 +198,51 @@ struct PermissionBanner: View {
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+}
+
+/// Inline form for saving the current mix as a profile.
+struct SaveProfileView: View {
+    let model: MixerModel
+    @Binding var isPresented: Bool
+
+    @State private var name = ""
+    @State private var includeOutputDevice = false
+    @FocusState private var isNameFocused: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Save Current Mix")
+                .font(.subheadline.weight(.semibold))
+            TextField("Profile Name, e.g. Work", text: $name)
+                .textFieldStyle(.roundedBorder)
+                .focused($isNameFocused)
+                .onSubmit(save)
+            Toggle("Also switch to \(model.output.deviceName)", isOn: $includeOutputDevice)
+                .toggleStyle(.checkbox)
+                .controlSize(.small)
+            if model.profiles
+                .contains(where: { $0.name.localizedCaseInsensitiveCompare(name.trimmingCharacters(in: .whitespaces)) == .orderedSame }) {
+                Text("This replaces the existing profile with the same name.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            HStack {
+                Spacer()
+                Button("Cancel") { isPresented = false }
+                    .keyboardShortcut(.cancelAction)
+                Button("Save", action: save)
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+            .controlSize(.small)
+        }
+        .onAppear { isNameFocused = true }
+    }
+
+    private func save() {
+        guard !name.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+        model.saveProfile(named: name, includeOutputDevice: includeOutputDevice)
+        isPresented = false
     }
 }

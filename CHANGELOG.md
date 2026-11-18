@@ -7,10 +7,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Level meters kept redrawing while the panel was closed, using about 20% CPU while audio played.
+- `Scripts/build.sh` could report success after a failed build.
 - Distorted audio on Bluetooth headphones and other devices that don't run at 48 kHz. Sample-rate conversion now uses the best quality.
 
 ### Added
 
+- **Volume boost up to 200%** per app (turn on in Settings → General), with a built-in limiter so boosted audio never clips.
+- **10-band equalizer per app** with presets (Bass Boost, Vocal, Spoken Word, Loudness, Rock, Electronic, Classical, Late Night and more).
+- **Per-app output routing:** play any app on a specific device, e.g. calls on the headset and music on the speakers.
+- **Profiles:** save the current mix as "Work", "Gaming", "Movie" and so on, and switch from the panel. Manage them in Settings → Profiles.
+- Right-click an app for Mute, Equalizer, Output Device and Reset.
 - **One-click output device switching** in the panel (built-in, Bluetooth/AirPods, HDMI, DisplayPort, USB, AirPlay), with device icons like Control Center.
 - **Input device switching and input volume**, which can be hidden in Settings → Devices. Changing the input volume never records audio.
 - **Remember app volumes for each output device** (optional, Settings → Devices).
