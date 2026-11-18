@@ -1,3 +1,6 @@
 # AudioEngine
 
-Core Audio process taps, the private aggregate devices and the real-time IOProc that applies gain, metering and EQ. Code here must be real-time safe: no allocations, locks, async calls, logging or Objective-C in the audio callback. Arrives in Phase 1.
+- `AudioEngine`: actor that creates and tears down process taps and private aggregate devices to match a list of `TapRequest`s.
+- `TapRenderState`: the real-time render code (gain ramp, peak metering) plus the atomics shared with the UI. **No allocations, locks, logging, async code or Objective-C in `render`.**
+- `LevelMeter`: smooths peaks for the on-screen meters.
+- `AudioCapturePermission`: checks and requests the System Audio Recording permission.

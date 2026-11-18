@@ -1,3 +1,4 @@
 # ProcessMonitor
 
-Watches which processes are playing audio (`kAudioHardwarePropertyProcessObjectList`) and groups helper processes under their parent app. Arrives in Phase 1.
+- `AudioProcessMonitor`: watches `kAudioHardwarePropertyProcessObjectList` and each process's running state.
+- `AppResolver`: maps a process to the app the user sees, grouping helpers (Chrome helpers, Safari's WebKit GPU process) under their parent app.

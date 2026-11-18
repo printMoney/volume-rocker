@@ -7,6 +7,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **Per-app volume and mute** using Core Audio process taps and private aggregate devices, with no virtual audio driver.
+- Live detection of apps playing audio, with helper processes grouped under their app (e.g. Chrome and Safari helpers).
+- Smooth, click-free gain changes (per-buffer linear ramps with vDSP) on a real-time-safe audio path.
+- Live per-app level meters.
+- Output volume and mute for the current output device, kept in sync with the volume keys.
+- Menu bar icon that reflects the output volume and mute state.
+- Per-app volume and mute remembered by bundle ID across restarts.
+- "Show Recent Apps" option to also list apps that are quiet right now.
+- First-launch onboarding that explains and requests the System Audio Recording permission.
+- Permission status in Settings → General.
 - Project foundation: XcodeGen project (Swift 6, strict concurrency, Apple Silicon only, macOS 15+).
 - Empty menu bar app with a mixer panel placeholder and a native Settings window (General, About).
 - Unit tests with Swift Testing.

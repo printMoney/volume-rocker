@@ -30,6 +30,9 @@ identifier_name:
   min_length: 2
   excluded: [x, y, i, db, id]
 
+trailing_comma:
+  mandatory_comma: true
+
 type_body_length:
   warning: 400
 file_length:

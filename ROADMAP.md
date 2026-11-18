@@ -18,17 +18,19 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started
 - ✅ `.github` issue templates, PR template, FUNDING placeholder
 - ✅ App icon placeholder
 
-## Phase 1: Core mixer ⬜
+## Phase 1: Core mixer ✅
 
-- ⬜ Live detection of apps producing audio (`kAudioHardwarePropertyProcessObjectList`, per-process "is running output")
-- ⬜ Helper processes grouped under their parent app (browsers, Electron apps)
-- ⬜ Per-app volume (0–100%) and mute via Core Audio process taps and a private aggregate device
-- ⬜ Real-time-safe IOProc: no allocations, locks, async code or logging; parameters passed with `Atomic`; ramped gain
-- ⬜ Master volume and mute, in sync with the volume keys
-- ⬜ Live per-app level meters (vDSP)
-- ⬜ Per-app volume and mute remembered by bundle ID
-- ⬜ Permission onboarding for "System Audio Recording"
-- ⬜ Menu bar icon reflects volume and mute
+- ✅ Live detection of apps producing audio (`kAudioHardwarePropertyProcessObjectList`, per-process "is running output")
+- ✅ Helper processes grouped under their parent app (browsers, Electron apps)
+- ✅ Per-app volume (0–100%) and mute via Core Audio process taps and a private aggregate device
+- ✅ Real-time-safe IOProc: no allocations, locks, async code or logging; parameters passed with `Atomic`; ramped gain
+- ✅ Master volume and mute, in sync with the volume keys
+- ✅ Live per-app level meters (vDSP)
+- ✅ Per-app volume and mute remembered by bundle ID
+- ✅ Permission onboarding for "System Audio Recording"
+- ✅ Menu bar icon reflects volume and mute
+
+Notes: each app gets its own private aggregate device (see docs/ARCHITECTURE.md for why). Known limitation: when a paused app resumes after more than 30 seconds, its first few milliseconds play at the original volume while the tap starts.
 
 ## Phase 2: Devices ⬜
 
