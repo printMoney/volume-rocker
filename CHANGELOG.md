@@ -5,6 +5,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-11-23
+
+### Fixed
+
+- Clicking an equalizer band jumped it to the maximum, so the EQ couldn't be adjusted. The bands are now real vertical sliders that follow the mouse, the arrow keys and VoiceOver.
+- The mixer could slide under the menu bar or get cut off when its content grew, for example after expanding the device list. It now always stays below the menu bar and fits on screen: the app list gives up space when needed, and the header is never cut off.
+
 ## [0.1.1] - 2026-11-18
 
 ### Fixed
@@ -58,6 +65,7 @@ The first public release.
 - When an app resumes after being paused for more than 30 seconds, its first few milliseconds may play at its original volume.
 - To choose a specific AirPlay speaker, use Control Center.
 
-[Unreleased]: https://github.com/printMoney/volume-rocker/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/printMoney/volume-rocker/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/printMoney/volume-rocker/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/printMoney/volume-rocker/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/printMoney/volume-rocker/releases/tag/v0.1.0

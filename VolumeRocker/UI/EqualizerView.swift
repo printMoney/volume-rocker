@@ -65,42 +65,82 @@ struct EqualizerView: View {
     }
 }
 
-/// A vertical slider for one EQ band, with its frequency underneath.
+/// One EQ band: a native vertical slider with its frequency underneath.
+///
+/// It uses AppKit's real vertical `NSSlider`. (A rotated SwiftUI `Slider` only *looks* vertical: its click
+/// area stays horizontal, so every click jumped to the maximum.)
 private struct BandSlider: View {
     let frequency: Double
     @Binding var gain: Float
 
     var body: some View {
         VStack(spacing: 4) {
-            GeometryReader { geometry in
-                Slider(
-                    value: Binding(get: { Double(gain) }, set: { gain = Float($0) }),
-                    in: Double(Equalizer.gainRange.lowerBound) ... Double(Equalizer.gainRange.upperBound)
-                ) {
-                    Text("\(Equalizer.label(for: frequency)) Hz")
-                }
-                .labelsHidden()
-                .controlSize(.mini)
-                .frame(width: geometry.size.height)
-                .rotationEffect(.degrees(-90))
-                .frame(width: geometry.size.width, height: geometry.size.height)
-            }
+            VerticalSlider(
+                value: $gain,
+                range: Equalizer.gainRange,
+                accessibilityLabel: String(localized: "\(Equalizer.label(for: frequency)) hertz")
+            )
             Text(Equalizer.label(for: frequency))
                 .font(.caption2.monospacedDigit())
                 .foregroundStyle(.secondary)
                 .accessibilityHidden(true)
         }
         .frame(maxWidth: .infinity)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(Text("\(Equalizer.label(for: frequency)) hertz"))
-        .accessibilityValue(Text("\(gain, format: .number.precision(.fractionLength(1)).sign(strategy: .always())) decibels"))
-        .accessibilityAdjustableAction { direction in
-            switch direction {
-            case .increment: gain = min(Equalizer.gainRange.upperBound, gain + 1)
-            case .decrement: gain = max(Equalizer.gainRange.lowerBound, gain - 1)
-            @unknown default: break
-            }
-        }
         .help(Text("\(Equalizer.label(for: frequency)) Hz: \(gain, format: .number.precision(.fractionLength(1))) dB"))
+    }
+}
+
+/// A native vertical `NSSlider` for SwiftUI. VoiceOver reads it as "31 hertz, plus 6 decibels", and it
+/// works with the arrow keys and with Full Keyboard Access.
+struct VerticalSlider: NSViewRepresentable {
+    @Binding var value: Float
+    let range: ClosedRange<Float>
+    let accessibilityLabel: String
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(value: $value)
+    }
+
+    func makeNSView(context: Context) -> DecibelSlider {
+        let slider = DecibelSlider()
+        slider.isVertical = true
+        slider.minValue = Double(range.lowerBound)
+        slider.maxValue = Double(range.upperBound)
+        slider.controlSize = .small
+        slider.isContinuous = true
+        slider.target = context.coordinator
+        slider.action = #selector(Coordinator.valueChanged(_:))
+        slider.setAccessibilityLabel(accessibilityLabel)
+        slider.doubleValue = Double(value)
+        return slider
+    }
+
+    func updateNSView(_ slider: DecibelSlider, context: Context) {
+        context.coordinator.value = $value
+        // Don't fight the user's drag: only push outside changes (presets, Reset) into the slider.
+        if abs(slider.doubleValue - Double(value)) > 0.001, NSEvent.pressedMouseButtons == 0 {
+            slider.doubleValue = Double(value)
+        }
+    }
+
+    @MainActor
+    final class Coordinator: NSObject {
+        var value: Binding<Float>
+
+        init(value: Binding<Float>) {
+            self.value = value
+        }
+
+        @objc func valueChanged(_ sender: NSSlider) {
+            value.wrappedValue = Float(sender.doubleValue)
+        }
+    }
+}
+
+/// Reports its value to VoiceOver in decibels.
+final class DecibelSlider: NSSlider {
+    override func accessibilityValueDescription() -> String? {
+        let decibels = Float(doubleValue).formatted(.number.precision(.fractionLength(1)).sign(strategy: .always()))
+        return String(localized: "\(decibels) decibels")
     }
 }

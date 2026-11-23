@@ -7,12 +7,17 @@ struct MixerPanelView: View {
     var onRequestClose: () -> Void = {}
     /// Reports the content's natural size, so the panel window can grow and shrink to fit it.
     var onSizeChange: (CGSize) -> Void = { _ in }
+    /// The tallest the whole panel may be on the current screen (set by the panel controller).
+    var maxPanelHeight: CGFloat = 800
 
     @Environment(\.openSettings) private var openSettings
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isSavingProfile = false
     /// Natural height of the app list, measured so the list only scrolls when it doesn't fit.
     @State private var appListHeight: CGFloat = 0
+    /// Height the app list actually shows (after its maximum), and the panel's whole natural height.
+    @State private var appListVisibleHeight: CGFloat = 0
+    @State private var panelHeight: CGFloat = 0
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -51,7 +56,12 @@ struct MixerPanelView: View {
         .padding(14)
         .frame(width: 340)
         .fixedSize(horizontal: false, vertical: true)
-        .onGeometryChange(for: CGSize.self, of: \.size) { onSizeChange($0) }
+        .onGeometryChange(for: CGSize.self, of: \.size) { size in
+            panelHeight = size.height
+            onSizeChange(size)
+        }
+        // If the window is ever shorter than the content, trim the bottom, never the header.
+        .frame(maxHeight: .infinity, alignment: .top)
         .trackingWindowVisibility()
         .animation(reduceMotion ? nil : .spring(duration: 0.35, bounce: 0.1), value: model.visibleApps.map(\.id))
         .animation(reduceMotion ? nil : .default, value: model.canControlApps)
@@ -84,16 +94,19 @@ struct MixerPanelView: View {
                 }
                 .scrollBounceBehavior(.basedOnSize)
                 .scrollIndicators(.automatic)
-                .frame(height: min(max(appListHeight, 1), Self.maxAppListHeight))
+                .frame(height: min(max(appListHeight, 1), maxAppListHeight))
+                .onGeometryChange(for: CGFloat.self, of: \.size.height) { appListVisibleHeight = $0 }
             }
         }
     }
 
     /// The app list grows with its content up to this height, then scrolls, so the panel always fits on screen
     /// with its device controls and buttons visible.
-    static var maxAppListHeight: CGFloat {
-        let screenHeight = NSScreen.main?.visibleFrame.height ?? 800
-        return min(460, max(180, screenHeight - 380))
+    /// How tall the app list may get: whatever room the panel has left after everything else in it
+    /// (device sections, expanded device lists, footer), but at most 460 points and at least 120.
+    private var maxAppListHeight: CGFloat {
+        let everythingElse = max(0, panelHeight - appListVisibleHeight)
+        return min(460, max(120, maxPanelHeight - everythingElse))
     }
 
     private var profilesMenu: some View {
