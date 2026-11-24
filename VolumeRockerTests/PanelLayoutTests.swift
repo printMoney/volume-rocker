@@ -6,6 +6,7 @@ import Testing
 /// Opens the real mixer panel under a stand-in menu bar icon and checks that the window always fits its
 /// content and stays fully on screen below the menu bar, also when the content grows while it is open.
 @MainActor
+@Suite(.needsInteractiveSession)
 struct PanelLayoutTests {
     private func previewItem(_ name: String) -> AppAudioItem {
         let item = AppAudioItem(

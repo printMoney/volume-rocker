@@ -14,6 +14,7 @@ jobs:
   lint:
     name: Lint
     runs-on: macos-26
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
       - name: Install tools
@@ -31,6 +32,7 @@ jobs:
   build-and-test:
     name: Build & Test (Apple Silicon)
     runs-on: macos-26 # arm64 runner
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
       - name: Select Xcode
@@ -40,6 +42,9 @@ jobs:
       - name: Generate project
         run: xcodegen generate
       - name: Build & test
+        env:
+          # Passed into the test process (xcodebuild forwards TEST_RUNNER_* variables without the prefix).
+          TEST_RUNNER_CI: "true"
         run: |
           set -o pipefail
           xcodebuild \

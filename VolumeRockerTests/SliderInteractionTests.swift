@@ -4,6 +4,7 @@ import Testing
 
 /// Clicks the real EQ band slider. Regression test: the old rotated slider jumped to the maximum on every click.
 @MainActor
+@Suite(.needsInteractiveSession)
 struct SliderInteractionTests {
     private func makeSlider() -> (DecibelSlider, NSWindow) {
         let slider = DecibelSlider(frame: NSRect(x: 20, y: 15, width: 22, height: 170))
