@@ -1,3 +1,17 @@
+> ## ⚠️ Disclaimer
+>
+> All apps in this repository are:
+>
+> - **Vibecoded**: written with AI assistance. I can't read code and don't know exactly what the AI wrote.
+> - **Open source**: free to read, use, and modify
+> - **Collecting no data**: my apps are not meant to collect any data, and I never will collect any
+> - **Experimental**: they may be buggy, incomplete, or break without notice
+>
+> **Use at your own risk.** There is no warranty of any kind.
+> Have your own AI review the code before you run anything.
+>
+> **Found a problem?** If you can show that one of my apps collects data, open an issue or send a commit. I will fix it right away.
+
 <div align="center">
 
 <img src="VolumeRocker/Resources/Assets.xcassets/AppIcon.appiconset/icon_256.png" width="128" alt="Volume Rocker icon">
