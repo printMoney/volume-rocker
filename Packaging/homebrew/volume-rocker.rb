@@ -1,8 +1,8 @@
 # Homebrew cask, as published in github.com/printMoney/homebrew-tap (Casks/volume-rocker.rb).
 # The release workflow updates `version` and `sha256` there automatically when HOMEBREW_TAP_TOKEN is set.
 cask "volume-rocker" do
-  version "0.1.1"
-  sha256 "e9cb4ca0fd4c7c3a45d8fd2e8035351f5013637010cae800d29d7306753e5c60"
+  version "0.1.2"
+  sha256 "8af97fb0ec1516c18623aa8272e7fb547ff8107d0719f6d02bdda5e87a2cd882"
 
   url "https://github.com/printMoney/volume-rocker/releases/download/v#{version}/VolumeRocker-#{version}.dmg"
   name "Volume Rocker"
