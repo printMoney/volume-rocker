@@ -1,16 +1,16 @@
 > ## ⚠️ Disclaimer
 >
-> All apps in this repository are:
+> This App is:
 >
-> - **Vibecoded**: written with AI assistance. I can't read code and don't know exactly what the AI wrote.
+> - **Vibecoded**: written with AI assistance. I can't read or write code and don't know exactly what the AI wrote.
 > - **Open source**: free to read, use, and modify
-> - **Collecting no data**: my apps are not meant to collect any data, and I never will collect any
+> - **Collecting no data**: my apps are not meant to collect any data, and I never will intentionally collect any
 > - **Experimental**: they may be buggy, incomplete, or break without notice
 >
 > **Use at your own risk.** There is no warranty of any kind.
-> Have your own AI review the code before you run anything.
+> When in doubt, have your own AI or yourself review the code before you run anything.
 >
-> **Found a problem?** If you can show that one of my apps collects data, open an issue or send a commit. I will fix it right away.
+> **Found a problem?** If you can show that one of my apps collects data or has bugs, open an issue or send a commit. I will fix it right away.
 
 <div align="center">
 
